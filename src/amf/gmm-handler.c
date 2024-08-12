@@ -1308,7 +1308,6 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
 
                         if (ul_nas_transport->presencemask &
                                 OGS_NAS_5GS_UL_NAS_TRANSPORT_DNN_PRESENT) {
-
                             for (k = 0;
                                     k < amf_ue->slice[i].num_of_session; k++) {
                                 if (k >= OGS_MAX_NUM_OF_SESS) {
@@ -1329,13 +1328,15 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                                     sess->dnn = ogs_strdup(dnn->value);
                                     ogs_assert(sess->dnn);
 
+                                    sess->lbo_roaming_allowed =
+                                        amf_ue->slice[i].
+                                        session[k].lbo_roaming_allowed;
                                 } else {
                                     continue;
                                 }
                             }
 
                         } else {
-
                             selected_slice = amf_ue->slice + i;
                             ogs_assert(selected_slice);
 
@@ -1345,6 +1346,9 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                                 sess->dnn = ogs_strdup(
                                         selected_slice->session[0].name);
                                 ogs_assert(sess->dnn);
+                                sess->lbo_roaming_allowed =
+                                    amf_ue->slice[i].
+                                    session[0].lbo_roaming_allowed;
                             }
                         }
                     }
@@ -1365,9 +1369,10 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
             sess->s_nssai.sst = selected_slice->s_nssai.sst;
             sess->s_nssai.sd.v = selected_slice->s_nssai.sd.v;
 
-            ogs_info("UE SUPI[%s] DNN[%s] S_NSSAI[SST:%d SD:0x%x] "
+            ogs_info("UE SUPI[%s] DNN[%s] LBO[%d] S_NSSAI[SST:%d SD:0x%x] "
                     "smContextRef[%s] smContextResourceURI[%s]",
-                amf_ue->supi, sess->dnn, sess->s_nssai.sst, sess->s_nssai.sd.v,
+                amf_ue->supi, sess->dnn, sess->lbo_roaming_allowed,
+                sess->s_nssai.sst, sess->s_nssai.sd.v,
                 sess->sm_context.ref ? sess->sm_context.ref : "NULL",
                 sess->sm_context.resource_uri ?
                     sess->sm_context.resource_uri : "NULL");

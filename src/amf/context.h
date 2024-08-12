@@ -821,6 +821,7 @@ typedef struct amf_sess_s {
     ogs_s_nssai_t s_nssai;
     ogs_s_nssai_t mapped_hplmn;
     char *dnn;
+    bool lbo_roaming_allowed;
 
 } amf_sess_t;
 

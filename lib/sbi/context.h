@@ -203,8 +203,8 @@ typedef struct ogs_sbi_object_s {
          * if no validityPeriod in SearchResult, validity_timeout is 0.
          */
         ogs_time_t validity_timeout;
-    } nf_type_array[OGS_SBI_MAX_NUM_OF_NF_TYPE],
-      service_type_array[OGS_SBI_MAX_NUM_OF_SERVICE_TYPE];
+    } service_type_array[OGS_SBI_MAX_NUM_OF_SERVICE_TYPE],
+      hplmn_service_type_array[OGS_SBI_MAX_NUM_OF_SERVICE_TYPE];
 
     ogs_list_t xact_list;
 
