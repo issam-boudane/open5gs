@@ -208,9 +208,12 @@ static int client_discover_cb(
     int r, rv;
     ogs_sbi_message_t message;
 
+    ogs_sbi_nf_instance_t *nf_instance = NULL;
+
     ogs_sbi_xact_t *xact = NULL;
     ogs_pool_id_t xact_id = OGS_INVALID_POOL_ID;
     ogs_sbi_service_type_e service_type = OGS_SBI_SERVICE_TYPE_NULL;
+    OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
     OpenAPI_nf_type_e requester_nf_type = OpenAPI_nf_type_NULL;
     ogs_sbi_discovery_option_t *discovery_option = NULL;
     amf_ue_t *amf_ue = NULL;
@@ -230,6 +233,8 @@ static int client_discover_cb(
 
     service_type = xact->service_type;
     ogs_assert(service_type);
+    target_nf_type = ogs_sbi_service_type_to_nf_type(service_type);
+    ogs_assert(target_nf_type);
     requester_nf_type = xact->requester_nf_type;
     ogs_assert(requester_nf_type);
     discovery_option = xact->discovery_option;
@@ -306,11 +311,9 @@ static int client_discover_cb(
 
     ogs_nnrf_disc_handle_nf_discover_search_result(message.SearchResult);
 
-    amf_sbi_select_nf(&sess->sbi,
-            service_type, requester_nf_type, discovery_option);
-
-    if (!OGS_SBI_GET_NF_INSTANCE(
-                sess->sbi.service_type_array[service_type])) {
+    nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
+                    target_nf_type, requester_nf_type, discovery_option);
+    if (!nf_instance) {
         ogs_error("[%s:%d] (NF discover) No [%s]",
                     amf_ue->supi, sess->psi,
                     ogs_sbi_service_type_to_name(service_type));
@@ -322,6 +325,9 @@ static int client_discover_cb(
 
         goto cleanup;
     }
+
+    OGS_SBI_SETUP_NF_INSTANCE(
+            sess->sbi.service_type_array[service_type], nf_instance);
 
     r = amf_sess_sbi_discover_and_send(
             service_type, NULL,

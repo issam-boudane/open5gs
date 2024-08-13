@@ -1396,24 +1396,29 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                 nf_instance = OGS_SBI_GET_NF_INSTANCE(
                         sess->sbi.service_type_array[service_type]);
                 if (!nf_instance) {
-                    OpenAPI_nf_type_e requester_nf_type =
-                                NF_INSTANCE_TYPE(ogs_sbi_self()->nf_instance);
+                    OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
+                    OpenAPI_nf_type_e requester_nf_type = OpenAPI_nf_type_NULL;
+
+                    target_nf_type =
+                        ogs_sbi_service_type_to_nf_type(service_type);
+                    ogs_assert(target_nf_type);
+                    requester_nf_type =
+                        NF_INSTANCE_TYPE(ogs_sbi_self()->nf_instance);
                     ogs_assert(requester_nf_type);
 
-                    amf_sbi_select_nf(
-                            &sess->sbi,
-                            OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION,
-                            requester_nf_type,
-                            discovery_option);
-                    nf_instance = OGS_SBI_GET_NF_INSTANCE(
-                            sess->sbi.service_type_array[service_type]);
-
-                    if (!nf_instance)
+                    nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
+                                    target_nf_type,
+                                    requester_nf_type,
+                                    discovery_option);
+                    if (nf_instance) {
+                        ogs_info("SMF Instance [%s](LIST)", nf_instance->id);
+                        OGS_SBI_SETUP_NF_INSTANCE(
+                                sess->sbi.service_type_array[service_type],
+                                nf_instance);
+                    } else
                         ogs_info("No SMF Instance");
-                    else
-                        ogs_info("SMF Instance [%s]", nf_instance->id);
                 } else
-                    ogs_info("SMF Instance [%s]", nf_instance->id);
+                    ogs_info("SMF Instance [%s](SESSION)", nf_instance->id);
 
                 if (nf_instance) {
                     r = amf_sess_sbi_discover_and_send(
