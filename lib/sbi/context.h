@@ -204,7 +204,7 @@ typedef struct ogs_sbi_object_s {
          */
         ogs_time_t validity_timeout;
     } service_type_array[OGS_SBI_MAX_NUM_OF_SERVICE_TYPE],
-      hplmn_service_type_array[OGS_SBI_MAX_NUM_OF_SERVICE_TYPE];
+      home_nsmf_pdusession, home_nnssf_nsselection;
 
     ogs_list_t xact_list;
 

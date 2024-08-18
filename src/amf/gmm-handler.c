@@ -1378,27 +1378,27 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                     sess->sm_context.resource_uri : "NULL");
 
             if (!SESSION_CONTEXT_IN_SMF(sess)) {
-                ogs_sbi_nf_instance_t *nf_instance = NULL;
+                ogs_sbi_nf_instance_t *v_smf_instance = NULL;
+                ogs_sbi_discovery_option_t *v_discovery_option = NULL;
+
+                OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
+                OpenAPI_nf_type_e requester_nf_type = OpenAPI_nf_type_NULL;
                 ogs_sbi_service_type_e service_type =
                     OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION;
 
-                ogs_sbi_discovery_option_t *discovery_option = NULL;
-
-                discovery_option = ogs_sbi_discovery_option_new();
-                ogs_assert(discovery_option);
+                v_discovery_option = ogs_sbi_discovery_option_new();
+                ogs_assert(v_discovery_option);
 
                 ogs_sbi_discovery_option_add_snssais(
-                        discovery_option, &sess->s_nssai);
-                ogs_sbi_discovery_option_set_dnn(discovery_option, sess->dnn);
+                        v_discovery_option, &sess->s_nssai);
+                ogs_sbi_discovery_option_set_dnn(
+                        v_discovery_option, sess->dnn);
                 ogs_sbi_discovery_option_set_tai(
-                        discovery_option, &amf_ue->nr_tai);
+                        v_discovery_option, &amf_ue->nr_tai);
 
-                nf_instance = OGS_SBI_GET_NF_INSTANCE(
+                v_smf_instance = OGS_SBI_GET_NF_INSTANCE(
                         sess->sbi.service_type_array[service_type]);
-                if (!nf_instance) {
-                    OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
-                    OpenAPI_nf_type_e requester_nf_type = OpenAPI_nf_type_NULL;
-
+                if (!v_smf_instance) {
                     target_nf_type =
                         ogs_sbi_service_type_to_nf_type(service_type);
                     ogs_assert(target_nf_type);
@@ -1406,32 +1406,125 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                         NF_INSTANCE_TYPE(ogs_sbi_self()->nf_instance);
                     ogs_assert(requester_nf_type);
 
-                    nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
-                                    target_nf_type,
-                                    requester_nf_type,
-                                    discovery_option);
-                    if (nf_instance) {
-                        ogs_info("SMF Instance [%s](LIST)", nf_instance->id);
+                    v_smf_instance =
+                        ogs_sbi_nf_instance_find_by_discovery_param(
+                                target_nf_type,
+                                requester_nf_type,
+                                v_discovery_option);
+                    if (v_smf_instance) {
+                        ogs_info("V-SMF Instance [%s](LIST)",
+                                v_smf_instance->id);
                         OGS_SBI_SETUP_NF_INSTANCE(
                                 sess->sbi.service_type_array[service_type],
-                                nf_instance);
+                                v_smf_instance);
                     } else
-                        ogs_info("No SMF Instance");
+                        ogs_info("No V-SMF Instance");
                 } else
-                    ogs_info("SMF Instance [%s](SESSION)", nf_instance->id);
+                    ogs_info("V-SMF Instance [%s](SESSION)",
+                            v_smf_instance->id);
 
-                if (nf_instance) {
-                    r = amf_sess_sbi_discover_and_send(
-                            OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION,
-                            discovery_option,
-                            amf_nsmf_pdusession_build_create_sm_context,
-                            ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
-                    ogs_expect(r == OGS_OK);
-                    ogs_assert(r != OGS_ERROR);
+                if (v_smf_instance) {
+                    ogs_info("V-SMF Instance [%s]", v_smf_instance->id);
+                    if (sess->lbo_roaming_allowed == false &&
+                        ogs_sbi_plmn_id_in_vplmn(
+                            &amf_ue->home_plmn_id) == true) {
+
+                        /* Home-Routed roaming */
+                        ogs_sbi_nf_instance_t *h_smf_instance = NULL;
+                        ogs_sbi_discovery_option_t *h_discovery_option = NULL;
+
+                        ogs_info("Home Routed roaming");
+
+                        h_smf_instance = OGS_SBI_GET_NF_INSTANCE(
+                                sess->sbi.home_nsmf_pdusession);
+
+                        h_discovery_option = ogs_sbi_discovery_option_new();
+                        ogs_assert(h_discovery_option);
+
+                        ogs_sbi_discovery_option_add_snssais(
+                                h_discovery_option, &sess->s_nssai);
+                        ogs_sbi_discovery_option_set_dnn(
+                                h_discovery_option, sess->dnn);
+                        ogs_sbi_discovery_option_set_tai(
+                                h_discovery_option, &amf_ue->nr_tai);
+
+                        ogs_sbi_discovery_option_add_target_plmn_list(
+                                h_discovery_option, &amf_ue->home_plmn_id);
+
+                        ogs_assert(ogs_local_conf()->num_of_serving_plmn_id);
+                        for (i = 0; i < ogs_local_conf()->num_of_serving_plmn_id;
+                                i++) {
+                            ogs_sbi_discovery_option_add_requester_plmn_list(
+                                    h_discovery_option,
+                                    &ogs_local_conf()->serving_plmn_id[i]);
+                        }
+
+                        if (!h_smf_instance) {
+                            h_smf_instance =
+                                ogs_sbi_nf_instance_find_by_discovery_param(
+                                        target_nf_type,
+                                        requester_nf_type,
+                                        h_discovery_option);
+                            if (h_smf_instance) {
+                                ogs_info("H-SMF Instance [%s](LIST)",
+                                        h_smf_instance->id);
+                                OGS_SBI_SETUP_NF_INSTANCE(
+                                        sess->sbi.home_nsmf_pdusession,
+                                        h_smf_instance);
+                            } else
+                                ogs_info("No H-SMF Instance");
+                        } else
+                            ogs_info("H-SMF Instance [%s](SESSION)",
+                                    h_smf_instance->id);
+
+                        if (h_smf_instance) {
+                            /* Both V-SMF and H-SMF Discovered */
+                            ogs_info("H-SMF Instance [%s]", h_smf_instance->id);
+                            r = amf_sess_sbi_discover_and_send(
+                                    OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION,
+                                    v_discovery_option,
+                                    amf_nsmf_pdusession_build_create_sm_context,
+                                    ran_ue, sess,
+                                    AMF_CREATE_SM_CONTEXT_NO_STATE,
+                                    NULL);
+                            ogs_expect(r == OGS_OK);
+                            ogs_assert(r != OGS_ERROR);
+
+                            ogs_sbi_discovery_option_free(h_discovery_option);
+                        } else {
+                            /* No H-SMF Instance */
+                            ogs_info("No H-SMF Instance");
+                            r = amf_sess_sbi_discover_and_send(
+                                    OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
+                                    h_discovery_option,
+                                    amf_nnssf_nsselection_build_get,
+                                    ran_ue, sess, 0, NULL);
+                            ogs_expect(r == OGS_OK);
+                            ogs_assert(r != OGS_ERROR);
+
+                            ogs_sbi_discovery_option_free(v_discovery_option);
+                        }
+
+                    } else {
+                        /* Non-roaming or LBO roaming */
+                        ogs_info("Non-roaming or LBO-roaming [%d]",
+                                sess->lbo_roaming_allowed);
+                        r = amf_sess_sbi_discover_and_send(
+                                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION,
+                                v_discovery_option,
+                                amf_nsmf_pdusession_build_create_sm_context,
+                                ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE,
+                                NULL);
+                        ogs_expect(r == OGS_OK);
+                        ogs_assert(r != OGS_ERROR);
+                    }
                 } else {
+                    /* No V-SMF Instance */
+                    ogs_info("No V-SMF Instance [%d]",
+                            sess->lbo_roaming_allowed);
                     r = amf_sess_sbi_discover_and_send(
                             OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
-                            discovery_option,
+                            v_discovery_option,
                             amf_nnssf_nsselection_build_get,
                             ran_ue, sess, 0, NULL);
                     ogs_expect(r == OGS_OK);
