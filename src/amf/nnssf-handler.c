@@ -25,13 +25,13 @@ int amf_nnssf_nsselection_handle_get(
         amf_sess_t *sess, ogs_sbi_message_t *recvmsg)
 {
     bool rc;
-    int r, i;
+    int r;
     OpenAPI_uri_scheme_e scheme = OpenAPI_uri_scheme_NULL;
     ogs_sbi_client_t *client = NULL, *scp_client = NULL;
     char *fqdn = NULL;
     uint16_t fqdn_port = 0;
     ogs_sockaddr_t *addr = NULL, *addr6 = NULL;
-    ogs_sbi_discovery_option_t *v_discovery_option = NULL;
+    ogs_sbi_discovery_option_t *discovery_option = NULL;
 
     OpenAPI_authorized_network_slice_info_t *AuthorizedNetworkSliceInfo = NULL;
     OpenAPI_nsi_information_t *NsiInformation = NULL;
@@ -97,172 +97,75 @@ int amf_nnssf_nsselection_handle_get(
         return OGS_ERROR;
     }
 
-    v_discovery_option = ogs_sbi_discovery_option_new();
-    ogs_assert(v_discovery_option);
+    discovery_option = ogs_sbi_discovery_option_new();
+    ogs_assert(discovery_option);
 
-    ogs_sbi_discovery_option_add_snssais(
-            v_discovery_option, &sess->s_nssai);
-    ogs_sbi_discovery_option_set_dnn(v_discovery_option, sess->dnn);
-    ogs_sbi_discovery_option_set_tai(v_discovery_option, &amf_ue->nr_tai);
+    ogs_sbi_discovery_option_add_snssais(discovery_option, &sess->s_nssai);
+    ogs_sbi_discovery_option_set_dnn(discovery_option, sess->dnn);
+    ogs_sbi_discovery_option_set_tai(discovery_option, &amf_ue->nr_tai);
 
-    if (sess->lbo_roaming_allowed == false &&
-        ogs_sbi_plmn_id_in_vplmn(&amf_ue->home_plmn_id) == true) {
+    if (sess->nssf.nrf.id)
+        ogs_free(sess->nssf.nrf.id);
+    sess->nssf.nrf.id = ogs_strdup(NsiInformation->nrf_id);
+    ogs_assert(sess->nssf.nrf.id);
 
-        ogs_sbi_nf_instance_t *h_smf_instance = NULL;
-        ogs_sbi_discovery_option_t *h_discovery_option = NULL;
+    scp_client = NF_INSTANCE_CLIENT(ogs_sbi_self()->scp_instance);
 
-        ogs_sbi_service_type_e service_type =
-            OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION;
-        OpenAPI_nf_type_e target_nf_type =
-            ogs_sbi_service_type_to_nf_type(service_type);
-        OpenAPI_nf_type_e requester_nf_type =
-            NF_INSTANCE_TYPE(ogs_sbi_self()->nf_instance);
+    if (scp_client) {
+        amf_nsmf_pdusession_sm_context_param_t param;
 
-        ogs_assert(target_nf_type);
-        ogs_assert(requester_nf_type);
+        memset(&param, 0, sizeof(param));
+        param.nrf_uri.nrf.id = sess->nssf.nrf.id;
 
-        /* Home-Routed roaming */
-        ogs_info("Home Routed roaming");
-
-        h_smf_instance = OGS_SBI_GET_NF_INSTANCE(
-                sess->sbi.home_nsmf_pdusession);
-
-        h_discovery_option = ogs_sbi_discovery_option_new();
-        ogs_assert(h_discovery_option);
-
-        ogs_sbi_discovery_option_add_snssais(
-                h_discovery_option, &sess->s_nssai);
-        ogs_sbi_discovery_option_set_dnn(
-                h_discovery_option, sess->dnn);
-        ogs_sbi_discovery_option_set_tai(
-                h_discovery_option, &amf_ue->nr_tai);
-
-        ogs_sbi_discovery_option_add_target_plmn_list(
-                h_discovery_option, &amf_ue->home_plmn_id);
-
-        ogs_assert(ogs_local_conf()->num_of_serving_plmn_id);
-        for (i = 0; i < ogs_local_conf()->num_of_serving_plmn_id;
-                i++) {
-            ogs_sbi_discovery_option_add_requester_plmn_list(
-                    h_discovery_option,
-                    &ogs_local_conf()->serving_plmn_id[i]);
-        }
-
-        if (!h_smf_instance) {
-            h_smf_instance =
-                ogs_sbi_nf_instance_find_by_discovery_param(
-                        target_nf_type,
-                        requester_nf_type,
-                        h_discovery_option);
-            if (h_smf_instance) {
-                ogs_info("H-SMF Instance [%s](LIST)",
-                        h_smf_instance->id);
-                OGS_SBI_SETUP_NF_INSTANCE(
-                        sess->sbi.home_nsmf_pdusession,
-                        h_smf_instance);
-            } else
-                ogs_info("No H-SMF Instance");
-        } else
-            ogs_info("H-SMF Instance [%s](SESSION)",
-                    h_smf_instance->id);
-
-        if (h_smf_instance) {
-            /* Both V-SMF and H-SMF Discovered */
-            ogs_info("H-SMF Instance [%s]", h_smf_instance->id);
-            r = amf_sess_sbi_discover_and_send(
-                    OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION,
-                    v_discovery_option,
-                    amf_nsmf_pdusession_build_create_sm_context,
-                    ran_ue, sess,
-                    AMF_CREATE_SM_CONTEXT_NO_STATE,
-                    NULL);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
-
-            ogs_sbi_discovery_option_free(h_discovery_option);
-        } else {
-            /* No H-SMF Instance */
-            ogs_info("H-SMF not discovered");
-            r = amf_sess_sbi_discover_and_send(
-                    OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
-                    h_discovery_option,
-                    amf_nnssf_nsselection_build_get,
-                    ran_ue, sess, 0, NULL);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
-
-            ogs_sbi_discovery_option_free(v_discovery_option);
-        }
-
+        r = amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, discovery_option,
+                amf_nsmf_pdusession_build_create_sm_context,
+                ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, &param);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
     } else {
-        /* Non-roaming or LBO roaming */
-        ogs_info("Non-roaming or LBO-roaming [%d]",
-                sess->lbo_roaming_allowed);
-
-        if (sess->nssf.nrf.id)
-            ogs_free(sess->nssf.nrf.id);
-        sess->nssf.nrf.id = ogs_strdup(NsiInformation->nrf_id);
-        ogs_assert(sess->nssf.nrf.id);
-
-        scp_client = NF_INSTANCE_CLIENT(ogs_sbi_self()->scp_instance);
-
-        if (scp_client) {
-            amf_nsmf_pdusession_sm_context_param_t param;
-
-            memset(&param, 0, sizeof(param));
-            param.nrf_uri.nrf.id = sess->nssf.nrf.id;
-
-            r = amf_sess_sbi_discover_and_send(
-                    OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, v_discovery_option,
-                    amf_nsmf_pdusession_build_create_sm_context,
-                    ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, &param);
+        rc = ogs_sbi_getaddr_from_uri(
+                &scheme, &fqdn, &fqdn_port, &addr, &addr6,
+                NsiInformation->nrf_id);
+        if (rc == false || scheme == OpenAPI_uri_scheme_NULL) {
+            ogs_error("[%s:%d] Invalid URI [%s]",
+                    amf_ue->supi, sess->psi, NsiInformation->nrf_id);
+            r = nas_5gs_send_gmm_reject_from_sbi(
+                    amf_ue, OGS_SBI_HTTP_STATUS_INTERNAL_SERVER_ERROR);
             ogs_expect(r == OGS_OK);
             ogs_assert(r != OGS_ERROR);
-        } else {
-            rc = ogs_sbi_getaddr_from_uri(
-                    &scheme, &fqdn, &fqdn_port, &addr, &addr6,
-                    NsiInformation->nrf_id);
-            if (rc == false || scheme == OpenAPI_uri_scheme_NULL) {
-                ogs_error("[%s:%d] Invalid URI [%s]",
-                        amf_ue->supi, sess->psi, NsiInformation->nrf_id);
-                r = nas_5gs_send_gmm_reject_from_sbi(
-                        amf_ue, OGS_SBI_HTTP_STATUS_INTERNAL_SERVER_ERROR);
-                ogs_expect(r == OGS_OK);
-                ogs_assert(r != OGS_ERROR);
 
-                ogs_sbi_discovery_option_free(v_discovery_option);
+            ogs_sbi_discovery_option_free(discovery_option);
+
+            return OGS_ERROR;
+        }
+
+        client = ogs_sbi_client_find(scheme, fqdn, fqdn_port, addr, addr6);
+        if (!client) {
+            ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
+            client = ogs_sbi_client_add(scheme, fqdn, fqdn_port, addr, addr6);
+            if (!client) {
+                ogs_error("%s: ogs_sbi_client_add() failed", OGS_FUNC);
+
+                ogs_sbi_discovery_option_free(discovery_option);
+                ogs_free(fqdn);
+                ogs_freeaddrinfo(addr);
+                ogs_freeaddrinfo(addr6);
 
                 return OGS_ERROR;
             }
-
-            client = ogs_sbi_client_find(scheme, fqdn, fqdn_port, addr, addr6);
-            if (!client) {
-                ogs_debug("%s: ogs_sbi_client_add()", OGS_FUNC);
-                client = ogs_sbi_client_add(
-                        scheme, fqdn, fqdn_port, addr, addr6);
-                if (!client) {
-                    ogs_error("%s: ogs_sbi_client_add() failed", OGS_FUNC);
-
-                    ogs_sbi_discovery_option_free(v_discovery_option);
-                    ogs_free(fqdn);
-                    ogs_freeaddrinfo(addr);
-                    ogs_freeaddrinfo(addr6);
-
-                    return OGS_ERROR;
-                }
-            }
-            OGS_SBI_SETUP_CLIENT(&sess->nssf.nrf, client);
-
-            ogs_free(fqdn);
-            ogs_freeaddrinfo(addr);
-            ogs_freeaddrinfo(addr6);
-
-            r = amf_sess_sbi_discover_by_nsi(
-                    ran_ue, sess,
-                    OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, v_discovery_option);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
         }
+        OGS_SBI_SETUP_CLIENT(&sess->nssf.nrf, client);
+
+        ogs_free(fqdn);
+        ogs_freeaddrinfo(addr);
+        ogs_freeaddrinfo(addr6);
+
+        r = amf_sess_sbi_discover_by_nsi(
+                ran_ue, sess,
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, discovery_option);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
     }
 
     return OGS_OK;
