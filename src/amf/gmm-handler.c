@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2024 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -1493,7 +1493,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             ogs_sbi_discovery_option_free(h_discovery_option);
                         } else {
                             /* No H-SMF Instance */
-                            ogs_info("No H-SMF Instance");
+                            ogs_info("H-SMF Not Discovered");
                             r = amf_sess_sbi_discover_and_send(
                                     OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
                                     h_discovery_option,
@@ -1520,8 +1520,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                     }
                 } else {
                     /* No V-SMF Instance */
-                    ogs_info("No V-SMF Instance [%d]",
-                            sess->lbo_roaming_allowed);
+                    ogs_info("V-SMF Not Discovered");
                     r = amf_sess_sbi_discover_and_send(
                             OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
                             v_discovery_option,
