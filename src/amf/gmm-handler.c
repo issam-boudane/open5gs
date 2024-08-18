@@ -1381,10 +1381,15 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                 ogs_sbi_nf_instance_t *v_smf_instance = NULL;
                 ogs_sbi_discovery_option_t *v_discovery_option = NULL;
 
-                OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
-                OpenAPI_nf_type_e requester_nf_type = OpenAPI_nf_type_NULL;
                 ogs_sbi_service_type_e service_type =
                     OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION;
+                OpenAPI_nf_type_e target_nf_type =
+                    ogs_sbi_service_type_to_nf_type(service_type);
+                OpenAPI_nf_type_e requester_nf_type =
+                    NF_INSTANCE_TYPE(ogs_sbi_self()->nf_instance);
+
+                ogs_assert(target_nf_type);
+                ogs_assert(requester_nf_type);
 
                 v_discovery_option = ogs_sbi_discovery_option_new();
                 ogs_assert(v_discovery_option);
@@ -1399,13 +1404,6 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                 v_smf_instance = OGS_SBI_GET_NF_INSTANCE(
                         sess->sbi.service_type_array[service_type]);
                 if (!v_smf_instance) {
-                    target_nf_type =
-                        ogs_sbi_service_type_to_nf_type(service_type);
-                    ogs_assert(target_nf_type);
-                    requester_nf_type =
-                        NF_INSTANCE_TYPE(ogs_sbi_self()->nf_instance);
-                    ogs_assert(requester_nf_type);
-
                     v_smf_instance =
                         ogs_sbi_nf_instance_find_by_discovery_param(
                                 target_nf_type,
@@ -1493,7 +1491,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             ogs_sbi_discovery_option_free(h_discovery_option);
                         } else {
                             /* No H-SMF Instance */
-                            ogs_info("H-SMF Not Discovered");
+                            ogs_info("H-SMF not discovered");
                             r = amf_sess_sbi_discover_and_send(
                                     OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
                                     h_discovery_option,
@@ -1520,7 +1518,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                     }
                 } else {
                     /* No V-SMF Instance */
-                    ogs_info("V-SMF Not Discovered");
+                    ogs_info("V-SMF not discovered");
                     r = amf_sess_sbi_discover_and_send(
                             OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
                             v_discovery_option,
