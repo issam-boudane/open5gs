@@ -110,9 +110,13 @@ int amf_nnssf_nsselection_handle_get(
     sess->nssf.nrf.id = ogs_strdup(NsiInformation->nrf_id);
     ogs_assert(sess->nssf.nrf.id);
 
-    scp_client = NF_INSTANCE_CLIENT(ogs_sbi_self()->scp_instance);
+    /* Check if Non-Roaming or Local-Breakout */
+    if (ogs_sbi_plmn_id_in_vplmn(&amf_ue->home_plmn_id) == false ||
+            sess->lbo_roaming_allowed == true)
+        scp_client = NF_INSTANCE_CLIENT(ogs_sbi_self()->scp_instance);
 
-    if (scp_client && state == AMF_SMF_SELECTION_IN_VPLMN) {
+    if (scp_client) {
+        /* Only if SCP is available if Non-Roaming or LBO */
         amf_nsmf_pdusession_sm_context_param_t param;
 
         memset(&param, 0, sizeof(param));
