@@ -56,6 +56,12 @@ bool nssf_nnrf_nsselection_handle_get(
         goto cleanup;
     }
 
+    if (!recvmsg->param.snssai_presence) {
+        status = OGS_SBI_HTTP_STATUS_BAD_REQUEST;
+        strerror = ogs_msprintf("No sNssai");
+        goto cleanup;
+    }
+
     nsi = nssf_nsi_find_by_s_nssai(&recvmsg->param.s_nssai);
     if (!nsi) {
         status = OGS_SBI_HTTP_STATUS_FORBIDDEN;

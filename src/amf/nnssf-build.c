@@ -24,8 +24,13 @@ ogs_sbi_request_t *amf_nnssf_nsselection_build_get(
 {
     ogs_sbi_message_t message;
     ogs_sbi_request_t *request = NULL;
+    amf_nnssf_nsselection_param_t *param = data;
+
+    amf_ue_t *amf_ue = NULL;
 
     ogs_assert(sess);
+    amf_ue = amf_ue_find_by_id(sess->amf_ue_id);
+    ogs_assert(amf_ue);
 
     memset(&message, 0, sizeof(message));
     message.h.method = (char *)OGS_SBI_HTTP_METHOD_GET;
@@ -36,19 +41,38 @@ ogs_sbi_request_t *amf_nnssf_nsselection_build_get(
 
     message.param.nf_id = NF_INSTANCE_ID(ogs_sbi_self()->nf_instance);
     if (!message.param.nf_id) {
-        ogs_error("No nf_id");
+        ogs_error("No nf-id");
         goto end;
     }
     message.param.nf_type = NF_INSTANCE_TYPE(ogs_sbi_self()->nf_instance);
     if (!message.param.nf_type) {
-        ogs_error("No nf_type");
+        ogs_error("No nf-type");
         goto end;
     }
 
     message.param.slice_info_request_for_pdu_session_presence = true;
-    message.param.roaming_indication = OpenAPI_roaming_indication_NON_ROAMING;
+
+    message.param.snssai_presence = true;
     memcpy(&message.param.s_nssai, &sess->s_nssai,
             sizeof(message.param.s_nssai));
+
+    if (ogs_sbi_plmn_id_in_vplmn(&amf_ue->home_plmn_id) == true) {
+        if (sess->lbo_roaming_allowed == true)
+            message.param.roaming_indication =
+                OpenAPI_roaming_indication_LOCAL_BREAKOUT;
+        else
+            message.param.roaming_indication =
+                OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
+    } else
+        message.param.roaming_indication =
+            OpenAPI_roaming_indication_NON_ROAMING;
+
+    if (param) {
+        message.param.home_snssai_presence = param->home_snssai_presence;
+        if (message.param.home_snssai_presence)
+            memcpy(&message.param.home_snssai, &param->home_snssai,
+                    sizeof(message.param.home_snssai));
+    }
 
     request = ogs_sbi_build_request(&message);
     ogs_expect(request);

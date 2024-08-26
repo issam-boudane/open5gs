@@ -26,6 +26,11 @@
 extern "C" {
 #endif
 
+typedef struct amf_nnssf_nsselection_param_s {
+    bool home_snssai_presence;
+    ogs_s_nssai_t home_snssai;
+} amf_nnssf_nsselection_param_t;
+
 ogs_sbi_request_t *amf_nnssf_nsselection_build_get(
         amf_sess_t *sess, void *data);
 

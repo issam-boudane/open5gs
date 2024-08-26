@@ -604,13 +604,13 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
     }
     if (message->param.slice_info_request_for_pdu_session_presence) {
         OpenAPI_slice_info_for_pdu_session_t SliceInfoForPDUSession;
-        OpenAPI_snssai_t sNSSAI;
+        OpenAPI_snssai_t sNssai, homeSnssai;
 
         char *v = NULL;
         cJSON *item = NULL;
 
-        if (!message->param.s_nssai.sst) {
-            ogs_error("No S-NSSAI SST");
+        if (!message->param.snssai_presence) {
+            ogs_error("No S-NSSAI");
             ogs_sbi_request_free(request);
             return NULL;
         }
@@ -620,22 +620,37 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
             return NULL;
         }
 
-        memset(&sNSSAI, 0, sizeof(sNSSAI));
-        sNSSAI.sst = message->param.s_nssai.sst;
-        sNSSAI.sd = ogs_s_nssai_sd_to_string(message->param.s_nssai.sd);
+        memset(&sNssai, 0, sizeof(sNssai));
+        sNssai.sst = message->param.s_nssai.sst;
+        sNssai.sd = ogs_s_nssai_sd_to_string(message->param.s_nssai.sd);
+
+        memset(&homeSnssai, 0, sizeof(homeSnssai));
+        if (message->param.home_snssai_presence) {
+            homeSnssai.sst = message->param.home_snssai.sst;
+            homeSnssai.sd = ogs_s_nssai_sd_to_string(
+                    message->param.home_snssai.sd);
+        }
 
         memset(&SliceInfoForPDUSession, 0, sizeof(SliceInfoForPDUSession));
 
-        SliceInfoForPDUSession.s_nssai = &sNSSAI;
+        SliceInfoForPDUSession.s_nssai = &sNssai;
         SliceInfoForPDUSession.roaming_indication =
             message->param.roaming_indication;
+        if (homeSnssai.sst)
+            SliceInfoForPDUSession.home_snssai = &homeSnssai;
 
         item = OpenAPI_slice_info_for_pdu_session_convertToJSON(
                 &SliceInfoForPDUSession);
         if (!item) {
             ogs_error("OpenAPI_slice_info_for_pdu_session_convertToJSON() "
                     "failed");
+
+            if (sNssai.sd)
+                ogs_free(sNssai.sd);
+            if (homeSnssai.sd)
+                ogs_free(homeSnssai.sd);
             ogs_sbi_request_free(request);
+
             return NULL;
         }
 
@@ -643,6 +658,12 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
         if (!v) {
             ogs_error("cJSON_PrintUnformatted() failed");
             ogs_sbi_request_free(request);
+
+            if (sNssai.sd)
+                ogs_free(sNssai.sd);
+            if (homeSnssai.sd)
+                ogs_free(homeSnssai.sd);
+
             return NULL;
         }
         cJSON_Delete(item);
@@ -651,8 +672,10 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
                 OGS_SBI_PARAM_SLICE_INFO_REQUEST_FOR_PDU_SESSION, v);
         ogs_free(v);
 
-        if (sNSSAI.sd)
-            ogs_free(sNSSAI.sd);
+        if (sNssai.sd)
+            ogs_free(sNssai.sd);
+        if (homeSnssai.sd)
+            ogs_free(homeSnssai.sd);
     }
     if (message->param.ipv4addr) {
         ogs_sbi_header_set(request->http.params,
@@ -939,15 +962,27 @@ int ogs_sbi_parse_request(
                     SliceInfoForPduSession =
                         OpenAPI_slice_info_for_pdu_session_parseFromJSON(item);
                     if (SliceInfoForPduSession) {
-                        OpenAPI_snssai_t *s_nssai =
-                            SliceInfoForPduSession->s_nssai;
+                        OpenAPI_snssai_t *s_nssai = NULL, *home_snssai = NULL;
+
+                        s_nssai = SliceInfoForPduSession->s_nssai;
                         if (s_nssai) {
                             message->param.s_nssai.sst = s_nssai->sst;
                             message->param.s_nssai.sd =
                                 ogs_s_nssai_sd_from_string(s_nssai->sd);
+                            message->param.snssai_presence = true;
                         }
+
                         message->param.roaming_indication =
                             SliceInfoForPduSession->roaming_indication;
+
+                        home_snssai = SliceInfoForPduSession->home_snssai;
+                        if (home_snssai) {
+                            message->param.home_snssai.sst = home_snssai->sst;
+                            message->param.home_snssai.sd =
+                                ogs_s_nssai_sd_from_string(home_snssai->sd);
+                            message->param.home_snssai_presence = true;
+                        }
+
                         message->param.
                             slice_info_request_for_pdu_session_presence = true;
 

@@ -479,10 +479,12 @@ typedef struct ogs_sbi_message_s {
         /* Shared memory */
         ogs_plmn_id_t plmn_id;
         ogs_s_nssai_t s_nssai;
+        ogs_s_nssai_t home_snssai;
 
         bool plmn_id_presence;
         bool single_nssai_presence;
         bool snssai_presence;
+        bool home_snssai_presence;
         bool slice_info_request_for_pdu_session_presence;
         OpenAPI_roaming_indication_e roaming_indication;
 
