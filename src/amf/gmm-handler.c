@@ -1505,7 +1505,8 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                                     OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
                                     h_discovery_option,
                                     amf_nnssf_nsselection_build_get,
-                                    ran_ue, sess, 0, &param);
+                                    ran_ue, sess,
+                                    AMF_SMF_SELECTION_IN_HPLMN, &param);
                             ogs_expect(r == OGS_OK);
                             ogs_assert(r != OGS_ERROR);
 
@@ -1532,7 +1533,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
                             v_discovery_option,
                             amf_nnssf_nsselection_build_get,
-                            ran_ue, sess, 0, NULL);
+                            ran_ue, sess, AMF_SMF_SELECTION_IN_VPLMN, NULL);
                     ogs_expect(r == OGS_OK);
                     ogs_assert(r != OGS_ERROR);
                 }

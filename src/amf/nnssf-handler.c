@@ -22,10 +22,10 @@
 #include "sbi-path.h"
 
 int amf_nnssf_nsselection_handle_get(
-        amf_sess_t *sess, ogs_sbi_message_t *recvmsg)
+        amf_sess_t *sess, int state, ogs_sbi_message_t *recvmsg)
 {
     bool rc;
-    int r;
+    int r, i;
     OpenAPI_uri_scheme_e scheme = OpenAPI_uri_scheme_NULL;
     ogs_sbi_client_t *client = NULL, *scp_client = NULL;
     char *fqdn = NULL;
@@ -39,6 +39,7 @@ int amf_nnssf_nsselection_handle_get(
     amf_ue_t *amf_ue = NULL;
     ran_ue_t *ran_ue = NULL;
 
+    ogs_assert(state);
     ogs_assert(recvmsg);
     ogs_assert(!SESSION_CONTEXT_IN_SMF(sess));
 
@@ -111,7 +112,7 @@ int amf_nnssf_nsselection_handle_get(
 
     scp_client = NF_INSTANCE_CLIENT(ogs_sbi_self()->scp_instance);
 
-    if (scp_client) {
+    if (scp_client && state == AMF_SMF_SELECTION_IN_VPLMN) {
         amf_nsmf_pdusession_sm_context_param_t param;
 
         memset(&param, 0, sizeof(param));
@@ -160,6 +161,18 @@ int amf_nnssf_nsselection_handle_get(
         ogs_free(fqdn);
         ogs_freeaddrinfo(addr);
         ogs_freeaddrinfo(addr6);
+
+        if (state == AMF_SMF_SELECTION_IN_HPLMN) {
+            ogs_sbi_discovery_option_add_target_plmn_list(
+                    discovery_option, &amf_ue->home_plmn_id);
+
+            ogs_assert(ogs_local_conf()->num_of_serving_plmn_id);
+            for (i = 0; i < ogs_local_conf()->num_of_serving_plmn_id; i++) {
+                ogs_sbi_discovery_option_add_requester_plmn_list(
+                        discovery_option,
+                        &ogs_local_conf()->serving_plmn_id[i]);
+            }
+        }
 
         r = amf_sess_sbi_discover_by_nsi(
                 ran_ue, sess,

@@ -65,6 +65,13 @@ bool amf_sbi_send_request(
 #define AMF_REMOVE_S1_CONTEXT_BY_RESET_ALL              52
 #define AMF_REMOVE_S1_CONTEXT_BY_RESET_PARTIAL          53
 
+/*
+ * TS23.502
+ * 4.3.2.2.3 SMF selection
+ */
+#define AMF_SMF_SELECTION_IN_VPLMN                      1
+#define AMF_SMF_SELECTION_IN_HPLMN                      2
+
 int amf_ue_sbi_discover_and_send(
         ogs_sbi_service_type_e service_type,
         ogs_sbi_discovery_option_t *discovery_option,
