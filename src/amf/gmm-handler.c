@@ -1381,6 +1381,8 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                 ogs_sbi_nf_instance_t *v_smf_instance = NULL;
                 ogs_sbi_discovery_option_t *v_discovery_option = NULL;
 
+                amf_nnssf_nsselection_param_t nnssf_nsselection_param;
+
                 ogs_sbi_service_type_e service_type = OGS_SBI_SERVICE_TYPE_NULL;
                 OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
                 OpenAPI_nf_type_e requester_nf_type = OpenAPI_nf_type_NULL;
@@ -1422,11 +1424,24 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                     ogs_info("V-SMF Instance [%s](SESSION)",
                             v_smf_instance->id);
 
+                memset(&nnssf_nsselection_param,
+                        0, sizeof(nnssf_nsselection_param));
+
+                if (ogs_sbi_plmn_id_in_vplmn(&amf_ue->home_plmn_id) == true) {
+                    if (sess->lbo_roaming_allowed == true)
+                        nnssf_nsselection_param.roaming_indication =
+                            OpenAPI_roaming_indication_LOCAL_BREAKOUT;
+                    else
+                        nnssf_nsselection_param.roaming_indication =
+                            OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
+                } else
+                    nnssf_nsselection_param.roaming_indication =
+                        OpenAPI_roaming_indication_NON_ROAMING;
+
                 if (v_smf_instance) {
                     ogs_info("V-SMF Instance [%s]", v_smf_instance->id);
-                    if (sess->lbo_roaming_allowed == false &&
-                        ogs_sbi_plmn_id_in_vplmn(
-                            &amf_ue->home_plmn_id) == true) {
+                    if (nnssf_nsselection_param.roaming_indication ==
+                            OpenAPI_roaming_indication_HOME_ROUTED_ROAMING) {
 
                         /* Home-Routed roaming */
                         ogs_sbi_nf_instance_t *h_smf_instance = NULL;
@@ -1491,13 +1506,10 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
 
                             ogs_sbi_discovery_option_free(h_discovery_option);
                         } else {
-                            amf_nnssf_nsselection_param_t param;
-
-                            memset(&param, 0, sizeof(param));
-
-                            param.home_snssai_presence = true;
-                            memcpy(&param.home_snssai, &sess->s_nssai,
-                                    sizeof(param.home_snssai));
+                            nnssf_nsselection_param.home_snssai_presence = true;
+                            memcpy(&nnssf_nsselection_param.home_snssai,
+                                    &sess->s_nssai,
+                                    sizeof(nnssf_nsselection_param.home_snssai));
 
                             /* No H-SMF Instance */
                             ogs_info("H-SMF not discovered");
@@ -1506,7 +1518,8 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                                     h_discovery_option,
                                     amf_nnssf_nsselection_build_get,
                                     ran_ue, sess,
-                                    AMF_SMF_SELECTION_IN_HPLMN, &param);
+                                    AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED,
+                                    &nnssf_nsselection_param);
                             ogs_expect(r == OGS_OK);
                             ogs_assert(r != OGS_ERROR);
 
@@ -1533,7 +1546,12 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
                             v_discovery_option,
                             amf_nnssf_nsselection_build_get,
-                            ran_ue, sess, AMF_SMF_SELECTION_IN_VPLMN, NULL);
+                            ran_ue, sess,
+                            nnssf_nsselection_param.roaming_indication ==
+                                OpenAPI_roaming_indication_HOME_ROUTED_ROAMING ?
+                                    AMF_SMF_SELECTION_IN_VPLMN_IN_HOME_ROUTED:
+                                    AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO,
+                            &nnssf_nsselection_param);
                     ogs_expect(r == OGS_OK);
                     ogs_assert(r != OGS_ERROR);
                 }

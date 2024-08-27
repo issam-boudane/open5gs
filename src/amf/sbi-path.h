@@ -69,8 +69,9 @@ bool amf_sbi_send_request(
  * TS23.502
  * 4.3.2.2.3 SMF selection
  */
-#define AMF_SMF_SELECTION_IN_VPLMN                      1
-#define AMF_SMF_SELECTION_IN_HPLMN                      2
+#define AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO    1
+#define AMF_SMF_SELECTION_IN_VPLMN_IN_HOME_ROUTED           2
+#define AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED           3
 
 int amf_ue_sbi_discover_and_send(
         ogs_sbi_service_type_e service_type,

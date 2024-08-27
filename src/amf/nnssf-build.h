@@ -27,6 +27,7 @@ extern "C" {
 #endif
 
 typedef struct amf_nnssf_nsselection_param_s {
+    OpenAPI_roaming_indication_e roaming_indication;
     bool home_snssai_presence;
     ogs_s_nssai_t home_snssai;
 } amf_nnssf_nsselection_param_t;

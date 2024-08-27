@@ -111,12 +111,11 @@ int amf_nnssf_nsselection_handle_get(
     ogs_assert(sess->nssf.nrf.id);
 
     /* Check if Non-Roaming or Local-Breakout */
-    if (ogs_sbi_plmn_id_in_vplmn(&amf_ue->home_plmn_id) == false ||
-            sess->lbo_roaming_allowed == true)
+    if (state == AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO)
         scp_client = NF_INSTANCE_CLIENT(ogs_sbi_self()->scp_instance);
 
     if (scp_client) {
-        /* Only if SCP is available if Non-Roaming or LBO */
+        /* SCP is only available if Non-Roaming or LBO */
         amf_nsmf_pdusession_sm_context_param_t param;
 
         memset(&param, 0, sizeof(param));
@@ -166,7 +165,7 @@ int amf_nnssf_nsselection_handle_get(
         ogs_freeaddrinfo(addr);
         ogs_freeaddrinfo(addr6);
 
-        if (state == AMF_SMF_SELECTION_IN_HPLMN) {
+        if (state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
             ogs_sbi_discovery_option_add_target_plmn_list(
                     discovery_option, &amf_ue->home_plmn_id);
 
