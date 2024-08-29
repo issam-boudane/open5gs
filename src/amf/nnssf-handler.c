@@ -110,12 +110,17 @@ int amf_nnssf_nsselection_handle_get(
     sess->nssf.nrf.id = ogs_strdup(NsiInformation->nrf_id);
     ogs_assert(sess->nssf.nrf.id);
 
-    /* Check if Non-Roaming or Local-Breakout */
+    /*
+     * SCP can only be used with Non-Roaming or LBO.
+     *
+     * In Home Routed, obtaining NRF from NSSF and selecting SMF
+     * cannot be done via SCP.
+     */
     if (state == AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO)
         scp_client = NF_INSTANCE_CLIENT(ogs_sbi_self()->scp_instance);
 
     if (scp_client) {
-        /* SCP is only available if Non-Roaming or LBO */
+        /* SCP can only be used with Non-Roaming or LBO. */
         amf_nsmf_pdusession_sm_context_param_t param;
 
         memset(&param, 0, sizeof(param));
@@ -128,6 +133,10 @@ int amf_nnssf_nsselection_handle_get(
         ogs_expect(r == OGS_OK);
         ogs_assert(r != OGS_ERROR);
     } else {
+        /*
+         * In Home Routed, obtaining NRF from NSSF and selecting SMF
+         * cannot be done via SCP.
+         */
         rc = ogs_sbi_getaddr_from_uri(
                 &scheme, &fqdn, &fqdn_port, &addr, &addr6,
                 NsiInformation->nrf_id);
@@ -166,6 +175,10 @@ int amf_nnssf_nsselection_handle_get(
         ogs_freeaddrinfo(addr6);
 
         if (state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
+            /*
+             * In order for Home Routed to find NRFs that are on HPLMN,
+             * we need to include Home PLMN information in the Discovery Option.
+             */
             ogs_sbi_discovery_option_add_target_plmn_list(
                     discovery_option, &amf_ue->home_plmn_id);
 
@@ -179,7 +192,7 @@ int amf_nnssf_nsselection_handle_get(
 
         r = amf_sess_sbi_discover_by_nsi(
                 ran_ue, sess,
-                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, discovery_option);
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, discovery_option, state);
         ogs_expect(r == OGS_OK);
         ogs_assert(r != OGS_ERROR);
     }

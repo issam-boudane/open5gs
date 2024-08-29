@@ -220,6 +220,8 @@ static int client_discover_cb(
     ran_ue_t *ran_ue = NULL;
     amf_sess_t *sess = NULL;
 
+    int state;
+
     xact_id = OGS_POINTER_TO_UINT(data);
     ogs_assert(xact_id >= OGS_MIN_POOL_ID && xact_id <= OGS_MAX_POOL_ID);
 
@@ -238,6 +240,9 @@ static int client_discover_cb(
     requester_nf_type = xact->requester_nf_type;
     ogs_assert(requester_nf_type);
     discovery_option = xact->discovery_option;
+
+    state = xact->state;
+    ogs_assert(state);
 
     sess = amf_sess_find_by_id(xact->sbi_object_id);
     if (!sess) {
@@ -355,7 +360,7 @@ cleanup:
 int amf_sess_sbi_discover_by_nsi(
         ran_ue_t *ran_ue, amf_sess_t *sess,
         ogs_sbi_service_type_e service_type,
-        ogs_sbi_discovery_option_t *discovery_option)
+        ogs_sbi_discovery_option_t *discovery_option, int state)
 {
     ogs_sbi_xact_t *xact = NULL;
     ogs_sbi_client_t *client = NULL;
@@ -364,6 +369,7 @@ int amf_sess_sbi_discover_by_nsi(
     client = sess->nssf.nrf.client;
     ogs_assert(client);
     ogs_assert(service_type);
+    ogs_assert(state);
 
     ogs_warn("Try to discover [%s]",
                 ogs_sbi_service_type_to_name(service_type));
@@ -388,6 +394,8 @@ int amf_sess_sbi_discover_by_nsi(
         ogs_sbi_xact_remove(xact);
         return OGS_ERROR;
     }
+
+    xact->state = state;
 
     return ogs_sbi_client_send_request(
             client, client_discover_cb, xact->request,

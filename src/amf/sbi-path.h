@@ -87,7 +87,7 @@ int amf_sess_sbi_discover_and_send(
 int amf_sess_sbi_discover_by_nsi(
         ran_ue_t *ran_ue, amf_sess_t *sess,
         ogs_sbi_service_type_e service_type,
-        ogs_sbi_discovery_option_t *discovery_option);
+        ogs_sbi_discovery_option_t *discovery_option, int state);
 
 void amf_sbi_send_activating_session(
         ran_ue_t *ran_ue, amf_sess_t *sess, int state);
