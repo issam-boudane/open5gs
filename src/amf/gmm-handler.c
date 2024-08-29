@@ -1131,7 +1131,6 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
     int r;
     ogs_slice_data_t *selected_slice = NULL;
     amf_sess_t *sess = NULL;
-    amf_nsmf_pdusession_sm_context_param_t param;
 
     ogs_nas_payload_container_type_t *payload_container_type = NULL;
     ogs_nas_payload_container_t *payload_container = NULL;
@@ -1381,7 +1380,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                 ogs_sbi_nf_instance_t *v_smf_instance = NULL;
                 ogs_sbi_discovery_option_t *v_discovery_option = NULL;
 
-                amf_nnssf_nsselection_param_t nnssf_nsselection_param;
+                amf_nnssf_nsselection_param_t param;
 
                 ogs_sbi_service_type_e service_type = OGS_SBI_SERVICE_TYPE_NULL;
                 OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
@@ -1424,23 +1423,22 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                     ogs_info("V-SMF Instance [%s](SESSION)",
                             v_smf_instance->id);
 
-                memset(&nnssf_nsselection_param,
-                        0, sizeof(nnssf_nsselection_param));
+                memset(&param, 0, sizeof(param));
 
                 if (ogs_sbi_plmn_id_in_vplmn(&amf_ue->home_plmn_id) == true) {
                     if (sess->lbo_roaming_allowed == true)
-                        nnssf_nsselection_param.roaming_indication =
+                        param.roaming_indication =
                             OpenAPI_roaming_indication_LOCAL_BREAKOUT;
                     else
-                        nnssf_nsselection_param.roaming_indication =
+                        param.roaming_indication =
                             OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
                 } else
-                    nnssf_nsselection_param.roaming_indication =
+                    param.roaming_indication =
                         OpenAPI_roaming_indication_NON_ROAMING;
 
                 if (v_smf_instance) {
                     ogs_info("V-SMF Instance [%s]", v_smf_instance->id);
-                    if (nnssf_nsselection_param.roaming_indication ==
+                    if (param.roaming_indication ==
                             OpenAPI_roaming_indication_HOME_ROUTED_ROAMING) {
 
                         /* Home-Routed roaming */
@@ -1506,10 +1504,9 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
 
                             ogs_sbi_discovery_option_free(h_discovery_option);
                         } else {
-                            nnssf_nsselection_param.home_snssai_presence = true;
-                            memcpy(&nnssf_nsselection_param.home_snssai,
-                                    &sess->s_nssai,
-                                    sizeof(nnssf_nsselection_param.home_snssai));
+                            param.home_snssai_presence = true;
+                            memcpy(&param.home_snssai, &sess->s_nssai,
+                                    sizeof(param.home_snssai));
 
                             /* No H-SMF Instance */
                             ogs_info("H-SMF not discovered");
@@ -1519,7 +1516,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                                     amf_nnssf_nsselection_build_get,
                                     ran_ue, sess,
                                     AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED,
-                                    &nnssf_nsselection_param);
+                                    &param);
                             ogs_expect(r == OGS_OK);
                             ogs_assert(r != OGS_ERROR);
 
@@ -1547,16 +1544,17 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             v_discovery_option,
                             amf_nnssf_nsselection_build_get,
                             ran_ue, sess,
-                            nnssf_nsselection_param.roaming_indication ==
+                            param.roaming_indication ==
                                 OpenAPI_roaming_indication_HOME_ROUTED_ROAMING ?
                                     AMF_SMF_SELECTION_IN_VPLMN_IN_HOME_ROUTED:
                                     AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO,
-                            &nnssf_nsselection_param);
+                            &param);
                     ogs_expect(r == OGS_OK);
                     ogs_assert(r != OGS_ERROR);
                 }
 
             } else {
+                amf_nsmf_pdusession_sm_context_param_t param;
 
                 memset(&param, 0, sizeof(param));
                 param.release = 1;
@@ -1573,7 +1571,6 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
             }
 
         } else {
-
             if (!SESSION_CONTEXT_IN_SMF(sess)) {
                 ogs_error("[%s:%d] Session Context is not in SMF [%d]",
                     amf_ue->supi, sess->psi, gsm_header->message_type);
@@ -1584,11 +1581,13 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                 return OGS_ERROR;
             }
 
-            memset(&param, 0, sizeof(param));
-            param.n1smbuf = sess->payload_container;
-
             if (gsm_header->message_type ==
                     OGS_NAS_5GS_PDU_SESSION_RELEASE_COMPLETE) {
+                amf_nsmf_pdusession_sm_context_param_t param;
+
+                memset(&param, 0, sizeof(param));
+                param.n1smbuf = sess->payload_container;
+
                 param.ue_location = true;
                 param.ue_timezone = true;
 
@@ -1600,6 +1599,10 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                 ogs_expect(r == OGS_OK);
                 ogs_assert(r != OGS_ERROR);
             } else {
+                amf_nsmf_pdusession_sm_context_param_t param;
+
+                memset(&param, 0, sizeof(param));
+                param.n1smbuf = sess->payload_container;
 
                 r = amf_sess_sbi_discover_and_send(
                         OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
