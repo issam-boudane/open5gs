@@ -1424,21 +1424,25 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             v_smf_instance->id);
 
                 memset(&param, 0, sizeof(param));
+                param.slice_info_for_pdu_session.presence = true;
+                param.slice_info_for_pdu_session.snssai = &sess->s_nssai;
 
                 if (ogs_sbi_plmn_id_in_vplmn(&amf_ue->home_plmn_id) == true) {
                     if (sess->lbo_roaming_allowed == true)
-                        param.roaming_indication =
+                        param.slice_info_for_pdu_session.roaming_indication =
                             OpenAPI_roaming_indication_LOCAL_BREAKOUT;
                     else
-                        param.roaming_indication =
+                        param.slice_info_for_pdu_session.roaming_indication =
                             OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
                 } else
-                    param.roaming_indication =
+                    param.slice_info_for_pdu_session.roaming_indication =
                         OpenAPI_roaming_indication_NON_ROAMING;
+
+                param.tai = &amf_ue->nr_tai;
 
                 if (v_smf_instance) {
                     ogs_info("V-SMF Instance [%s]", v_smf_instance->id);
-                    if (param.roaming_indication ==
+                    if (param.slice_info_for_pdu_session.roaming_indication ==
                             OpenAPI_roaming_indication_HOME_ROUTED_ROAMING) {
 
                         /* Home-Routed roaming */
@@ -1507,9 +1511,8 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             ogs_expect(r == OGS_OK);
                             ogs_assert(r != OGS_ERROR);
                         } else {
-                            param.home_snssai_presence = true;
-                            memcpy(&param.home_snssai, &sess->s_nssai,
-                                    sizeof(param.home_snssai));
+                            param.slice_info_for_pdu_session.home_snssai =
+                                &sess->s_nssai;
 
                             /* No H-SMF Instance */
                             ogs_info("H-SMF not discovered");
@@ -1546,7 +1549,8 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
                             NULL,
                             amf_nnssf_nsselection_build_get, ran_ue, sess,
-                            param.roaming_indication ==
+                            param.slice_info_for_pdu_session.
+                                roaming_indication ==
                                 OpenAPI_roaming_indication_HOME_ROUTED_ROAMING ?
                                     AMF_SMF_SELECTION_IN_VPLMN_IN_HOME_ROUTED:
                                     AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO,

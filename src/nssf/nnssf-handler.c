@@ -50,7 +50,7 @@ bool nssf_nnrf_nsselection_handle_get(
         goto cleanup;
     }
 
-    if (!recvmsg->param.slice_info_request_for_pdu_session_presence) {
+    if (!recvmsg->param.slice_info_for_pdu_session_presence) {
         status = OGS_SBI_HTTP_STATUS_BAD_REQUEST;
         strerror = ogs_msprintf("Not implemented except PDU session");
         goto cleanup;

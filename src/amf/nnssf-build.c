@@ -51,18 +51,39 @@ ogs_sbi_request_t *amf_nnssf_nsselection_build_get(
         goto end;
     }
 
-    message.param.slice_info_request_for_pdu_session_presence = true;
+    message.param.slice_info_for_pdu_session_presence =
+        param->slice_info_for_pdu_session.presence;
+
+    if (!message.param.slice_info_for_pdu_session_presence) {
+        ogs_error("No sliceInfoForPDUSession");
+        goto end;
+    }
+
+    if (!param->slice_info_for_pdu_session.snssai) {
+        ogs_error("No sNssai");
+        goto end;
+    }
 
     message.param.snssai_presence = true;
-    memcpy(&message.param.s_nssai, &sess->s_nssai,
+    memcpy(&message.param.s_nssai,
+            param->slice_info_for_pdu_session.snssai,
             sizeof(message.param.s_nssai));
 
-    message.param.roaming_indication = param->roaming_indication;
+    message.param.roaming_indication =
+        param->slice_info_for_pdu_session.roaming_indication;
 
-    message.param.home_snssai_presence = param->home_snssai_presence;
-    if (message.param.home_snssai_presence)
-        memcpy(&message.param.home_snssai, &param->home_snssai,
-                sizeof(message.param.home_snssai));
+    if (!message.param.roaming_indication) {
+        ogs_error("No roamingIndication");
+        goto end;
+    }
+
+    if (param->slice_info_for_pdu_session.home_snssai) {
+        message.param.home_snssai_presence = true;
+        if (message.param.home_snssai_presence)
+            memcpy(&message.param.home_snssai,
+                    param->slice_info_for_pdu_session.home_snssai,
+                    sizeof(message.param.home_snssai));
+    }
 
     request = ogs_sbi_build_request(&message);
     ogs_expect(request);

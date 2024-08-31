@@ -412,11 +412,12 @@ static int client_discover_cb(
             amf_nnssf_nsselection_param_t param;
 
             memset(&param, 0, sizeof(param));
-            param.roaming_indication =
+            param.slice_info_for_pdu_session.presence = true;
+            param.slice_info_for_pdu_session.snssai = &sess->s_nssai;
+            param.slice_info_for_pdu_session.roaming_indication =
                 OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
-            param.home_snssai_presence = true;
-            memcpy(&param.home_snssai, &sess->s_nssai,
-                    sizeof(param.home_snssai));
+            param.slice_info_for_pdu_session.home_snssai = &sess->s_nssai;
+            param.tai = &amf_ue->nr_tai;
 
             /* No H-SMF Instance */
             ogs_info("H-SMF not discovered");

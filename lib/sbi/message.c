@@ -602,7 +602,7 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
         ogs_sbi_header_set(request->http.params, OGS_SBI_PARAM_SNSSAI, v);
         ogs_free(v);
     }
-    if (message->param.slice_info_request_for_pdu_session_presence) {
+    if (message->param.slice_info_for_pdu_session_presence) {
         OpenAPI_slice_info_for_pdu_session_t SliceInfoForPDUSession;
         OpenAPI_snssai_t sNssai, homeSnssai;
 
@@ -984,7 +984,7 @@ int ogs_sbi_parse_request(
                         }
 
                         message->param.
-                            slice_info_request_for_pdu_session_presence = true;
+                            slice_info_for_pdu_session_presence = true;
 
                         OpenAPI_slice_info_for_pdu_session_free(
                                 SliceInfoForPduSession);

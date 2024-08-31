@@ -485,7 +485,7 @@ typedef struct ogs_sbi_message_s {
         bool single_nssai_presence;
         bool snssai_presence;
         bool home_snssai_presence;
-        bool slice_info_request_for_pdu_session_presence;
+        bool slice_info_for_pdu_session_presence;
         OpenAPI_roaming_indication_e roaming_indication;
 
         char *ipv4addr;
