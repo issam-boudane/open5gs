@@ -220,6 +220,8 @@ static int client_discover_cb(
     ran_ue_t *ran_ue = NULL;
     amf_sess_t *sess = NULL;
 
+    ogs_sbi_discovery_option_t *v_discovery_option = NULL;
+
     int state;
 
     xact_id = OGS_POINTER_TO_UINT(data);
@@ -331,12 +333,19 @@ static int client_discover_cb(
         goto cleanup;
     }
 
+    v_discovery_option = ogs_sbi_discovery_option_new();
+    ogs_assert(v_discovery_option);
+
+    ogs_sbi_discovery_option_add_snssais(v_discovery_option, &sess->s_nssai);
+    ogs_sbi_discovery_option_set_dnn(v_discovery_option, sess->dnn);
+    ogs_sbi_discovery_option_set_tai(v_discovery_option, &amf_ue->nr_tai);
+
     if (state == AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO) {
         OGS_SBI_SETUP_NF_INSTANCE(
                 sess->sbi.service_type_array[service_type], nf_instance);
 
         r = amf_sess_sbi_discover_and_send(
-                service_type, NULL,
+                service_type, v_discovery_option,
                 amf_nsmf_pdusession_build_create_sm_context,
                 ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
         ogs_expect(r == OGS_OK);
@@ -394,7 +403,7 @@ static int client_discover_cb(
             /* Both V-SMF and H-SMF Discovered */
             ogs_info("H-SMF Instance [%s]", h_smf_instance->id);
             r = amf_sess_sbi_discover_and_send(
-                    service_type, NULL,
+                    service_type, v_discovery_option,
                     amf_nsmf_pdusession_build_create_sm_context,
                     ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
             ogs_expect(r == OGS_OK);
@@ -418,15 +427,16 @@ static int client_discover_cb(
                     AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED, &param);
             ogs_expect(r == OGS_OK);
             ogs_assert(r != OGS_ERROR);
+
+            ogs_sbi_discovery_option_free(v_discovery_option);
         }
     } else if (state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
         ogs_info("Home-Routed Roaming(HPLMN)");
 
-        OGS_SBI_SETUP_NF_INSTANCE(
-                sess->sbi.home_nsmf_pdusession, nf_instance);
+        OGS_SBI_SETUP_NF_INSTANCE(sess->sbi.home_nsmf_pdusession, nf_instance);
 
         r = amf_sess_sbi_discover_and_send(
-                service_type, NULL,
+                service_type, v_discovery_option,
                 amf_nsmf_pdusession_build_create_sm_context,
                 ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
         ogs_expect(r == OGS_OK);
