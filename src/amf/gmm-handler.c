@@ -1443,35 +1443,37 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
 
                         /* Home-Routed roaming */
                         ogs_sbi_nf_instance_t *h_smf_instance = NULL;
-                        ogs_sbi_discovery_option_t *h_discovery_option = NULL;
 
-                        ogs_info("Home Routed roaming");
+                        ogs_info("Home-Routed Roaming");
 
                         h_smf_instance = OGS_SBI_GET_NF_INSTANCE(
                                 sess->sbi.home_nsmf_pdusession);
 
-                        h_discovery_option = ogs_sbi_discovery_option_new();
-                        ogs_assert(h_discovery_option);
-
-                        ogs_sbi_discovery_option_add_snssais(
-                                h_discovery_option, &sess->s_nssai);
-                        ogs_sbi_discovery_option_set_dnn(
-                                h_discovery_option, sess->dnn);
-                        ogs_sbi_discovery_option_set_tai(
-                                h_discovery_option, &amf_ue->nr_tai);
-
-                        ogs_sbi_discovery_option_add_target_plmn_list(
-                                h_discovery_option, &amf_ue->home_plmn_id);
-
-                        ogs_assert(ogs_local_conf()->num_of_serving_plmn_id);
-                        for (i = 0; i < ogs_local_conf()->num_of_serving_plmn_id;
-                                i++) {
-                            ogs_sbi_discovery_option_add_requester_plmn_list(
-                                    h_discovery_option,
-                                    &ogs_local_conf()->serving_plmn_id[i]);
-                        }
-
                         if (!h_smf_instance) {
+                            ogs_sbi_discovery_option_t *h_discovery_option =
+                                ogs_sbi_discovery_option_new();
+                            ogs_assert(h_discovery_option);
+
+                            ogs_sbi_discovery_option_add_snssais(
+                                    h_discovery_option, &sess->s_nssai);
+                            ogs_sbi_discovery_option_set_dnn(
+                                    h_discovery_option, sess->dnn);
+                            ogs_sbi_discovery_option_set_tai(
+                                    h_discovery_option, &amf_ue->nr_tai);
+
+                            ogs_sbi_discovery_option_add_target_plmn_list(
+                                    h_discovery_option, &amf_ue->home_plmn_id);
+
+                            ogs_assert(ogs_local_conf()->
+                                    num_of_serving_plmn_id);
+                            for (i = 0; i <
+                                    ogs_local_conf()->num_of_serving_plmn_id;
+                                    i++) {
+                                ogs_sbi_discovery_option_add_requester_plmn_list(
+                                        h_discovery_option,
+                                        &ogs_local_conf()->serving_plmn_id[i]);
+                            }
+
                             h_smf_instance =
                                 ogs_sbi_nf_instance_find_by_discovery_param(
                                         target_nf_type,
@@ -1485,6 +1487,9 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                                         h_smf_instance);
                             } else
                                 ogs_info("No H-SMF Instance");
+
+                            ogs_sbi_discovery_option_free(h_discovery_option);
+
                         } else
                             ogs_info("H-SMF Instance [%s](SESSION)",
                                     h_smf_instance->id);
@@ -1501,8 +1506,6 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                                     NULL);
                             ogs_expect(r == OGS_OK);
                             ogs_assert(r != OGS_ERROR);
-
-                            ogs_sbi_discovery_option_free(h_discovery_option);
                         } else {
                             param.home_snssai_presence = true;
                             memcpy(&param.home_snssai, &sess->s_nssai,
@@ -1512,7 +1515,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             ogs_info("H-SMF not discovered");
                             r = amf_sess_sbi_discover_and_send(
                                     OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
-                                    h_discovery_option,
+                                    NULL,
                                     amf_nnssf_nsselection_build_get,
                                     ran_ue, sess,
                                     AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED,
@@ -1525,7 +1528,7 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
 
                     } else {
                         /* Non-roaming or LBO roaming */
-                        ogs_info("Non-roaming or LBO-roaming [%d]",
+                        ogs_info("Non-Roaming or LBO-Roaming [%d]",
                                 sess->lbo_roaming_allowed);
                         r = amf_sess_sbi_discover_and_send(
                                 OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION,
@@ -1541,9 +1544,8 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                     ogs_info("V-SMF not discovered");
                     r = amf_sess_sbi_discover_and_send(
                             OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
-                            v_discovery_option,
-                            amf_nnssf_nsselection_build_get,
-                            ran_ue, sess,
+                            NULL,
+                            amf_nnssf_nsselection_build_get, ran_ue, sess,
                             param.roaming_indication ==
                                 OpenAPI_roaming_indication_HOME_ROUTED_ROAMING ?
                                     AMF_SMF_SELECTION_IN_VPLMN_IN_HOME_ROUTED:
@@ -1551,6 +1553,8 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             &param);
                     ogs_expect(r == OGS_OK);
                     ogs_assert(r != OGS_ERROR);
+
+                    ogs_sbi_discovery_option_free(v_discovery_option);
                 }
 
             } else {
