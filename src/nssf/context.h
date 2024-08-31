@@ -51,6 +51,13 @@ typedef struct nssf_nsi_s {
     char *nsi_id;
 
     ogs_s_nssai_t s_nssai;
+    bool home_snssai_presence;
+    ogs_s_nssai_t home_snssai;
+
+    bool home_plmn_id_presence;
+    ogs_plmn_id_t home_plmn_id;
+    bool tai_presence;
+    ogs_5gs_tai_t tai;
 } nssf_nsi_t;
 
 nssf_nsi_t *nssf_nsi_add(char *nrf_id, uint8_t sst, ogs_uint24_t sd);

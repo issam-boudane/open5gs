@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2024 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -340,6 +340,7 @@ extern "C" {
         "slice-info-request-for-pdu-session"
 #define OGS_SBI_PARAM_IPV4ADDR                      "ipv4Addr"
 #define OGS_SBI_PARAM_IPV6PREFIX                    "ipv6Prefix"
+#define OGS_SBI_PARAM_HOME_PLMN_ID                  "home-plmn-id"
 
 #define OGS_SBI_CONTENT_JSON_TYPE                   \
     OGS_SBI_APPLICATION_TYPE "/" OGS_SBI_APPLICATION_JSON_TYPE
@@ -477,19 +478,25 @@ typedef struct ogs_sbi_message_s {
         char *dnn;
 
         /* Shared memory */
-        ogs_plmn_id_t plmn_id;
-        ogs_s_nssai_t s_nssai;
-        ogs_s_nssai_t home_snssai;
-
         bool plmn_id_presence;
+        ogs_plmn_id_t plmn_id;
+
         bool single_nssai_presence;
         bool snssai_presence;
-        bool home_snssai_presence;
+        ogs_s_nssai_t s_nssai;
+
         bool slice_info_for_pdu_session_presence;
         OpenAPI_roaming_indication_e roaming_indication;
+        bool home_snssai_presence;
+        ogs_s_nssai_t home_snssai;
 
         char *ipv4addr;
         char *ipv6prefix;
+
+        bool home_plmn_id_presence;
+        ogs_plmn_id_t home_plmn_id;
+        bool tai_presence;
+        ogs_5gs_tai_t tai;
     } param;
 
     int res_status;

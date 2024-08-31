@@ -1428,12 +1428,19 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                 param.slice_info_for_pdu_session.snssai = &sess->s_nssai;
 
                 if (ogs_sbi_plmn_id_in_vplmn(&amf_ue->home_plmn_id) == true) {
-                    if (sess->lbo_roaming_allowed == true)
+
+                    if (sess->lbo_roaming_allowed == true) {
                         param.slice_info_for_pdu_session.roaming_indication =
                             OpenAPI_roaming_indication_LOCAL_BREAKOUT;
-                    else
+                    } else {
                         param.slice_info_for_pdu_session.roaming_indication =
                             OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
+                        param.slice_info_for_pdu_session.home_snssai =
+                            &sess->s_nssai;
+                    }
+
+                    param.home_plmn_id = &amf_ue->home_plmn_id;
+
                 } else
                     param.slice_info_for_pdu_session.roaming_indication =
                         OpenAPI_roaming_indication_NON_ROAMING;
@@ -1511,9 +1518,6 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             ogs_expect(r == OGS_OK);
                             ogs_assert(r != OGS_ERROR);
                         } else {
-                            param.slice_info_for_pdu_session.home_snssai =
-                                &sess->s_nssai;
-
                             /* No H-SMF Instance */
                             ogs_info("H-SMF not discovered");
                             r = amf_sess_sbi_discover_and_send(

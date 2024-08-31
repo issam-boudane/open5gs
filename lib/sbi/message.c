@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2023 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2024 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -686,6 +686,72 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
                 OGS_SBI_PARAM_IPV6PREFIX, message->param.ipv6prefix);
     }
 
+    if (message->param.home_plmn_id_presence) {
+        OpenAPI_plmn_id_t home_plmn_id;
+
+        home_plmn_id.mnc = ogs_plmn_id_mnc_string(&message->param.home_plmn_id);
+        home_plmn_id.mcc = ogs_plmn_id_mcc_string(&message->param.home_plmn_id);
+
+        if (home_plmn_id.mnc && home_plmn_id.mcc) {
+            char *v = NULL;
+            cJSON *item = NULL;
+
+            item = OpenAPI_plmn_id_convertToJSON(&home_plmn_id);
+            if (!item) {
+                ogs_error("OpenAPI_plmn_id_convertToJSON() failed");
+                ogs_sbi_request_free(request);
+                return NULL;
+            }
+            if (home_plmn_id.mnc) ogs_free(home_plmn_id.mnc);
+            if (home_plmn_id.mcc) ogs_free(home_plmn_id.mcc);
+
+            v = cJSON_PrintUnformatted(item);
+            if (!v) {
+                ogs_error("cJSON_PrintUnformatted() failed");
+                ogs_sbi_request_free(request);
+                return NULL;
+            }
+            cJSON_Delete(item);
+
+            ogs_sbi_header_set(
+                    request->http.params, OGS_SBI_PARAM_HOME_PLMN_ID, v);
+            ogs_free(v);
+        }
+    }
+
+    if (message->param.tai_presence) {
+        OpenAPI_tai_t tai;
+
+        memset(&tai, 0, sizeof(tai));
+        tai.plmn_id = ogs_sbi_build_plmn_id(&message->param.tai.plmn_id);
+        tai.tac = ogs_uint24_to_0string(message->param.tai.tac);
+
+        if (tai.plmn_id && tai.tac) {
+            char *v = NULL;
+            cJSON *item = NULL;
+
+            item = OpenAPI_tai_convertToJSON(&tai);
+            if (!item) {
+                ogs_error("OpenAPI_tai_convertToJSON() failed");
+                ogs_sbi_request_free(request);
+                return NULL;
+            }
+            if (tai.plmn_id) ogs_sbi_free_plmn_id(tai.plmn_id);
+            if (tai.tac) ogs_free(tai.tac);
+
+            v = cJSON_PrintUnformatted(item);
+            if (!v) {
+                ogs_error("cJSON_PrintUnformatted() failed");
+                ogs_sbi_request_free(request);
+                return NULL;
+            }
+            cJSON_Delete(item);
+
+            ogs_sbi_header_set(request->http.params, OGS_SBI_PARAM_TAI, v);
+            ogs_free(v);
+        }
+    }
+
     if (build_content(&request->http, message) == false) {
         ogs_error("build_content() failed");
         ogs_sbi_request_free(request);
@@ -997,6 +1063,48 @@ int ogs_sbi_parse_request(
             message->param.ipv4addr = ogs_hash_this_val(hi);
         } else if (!strcmp(ogs_hash_this_key(hi), OGS_SBI_PARAM_IPV6PREFIX)) {
             message->param.ipv6prefix = ogs_hash_this_val(hi);
+        } else if (!strcmp(ogs_hash_this_key(hi), OGS_SBI_PARAM_HOME_PLMN_ID)) {
+            char *v = NULL;
+            cJSON *item = NULL;
+            OpenAPI_plmn_id_t *home_plmn_id = NULL;
+
+            v = ogs_hash_this_val(hi);
+            if (v) {
+                item = cJSON_Parse(v);
+                if (item) {
+                    home_plmn_id = OpenAPI_plmn_id_parseFromJSON(item);
+                    if (home_plmn_id &&
+                            home_plmn_id->mnc && home_plmn_id->mcc) {
+                        ogs_plmn_id_build(&message->param.home_plmn_id,
+                            atoi(home_plmn_id->mcc),
+                            atoi(home_plmn_id->mnc), strlen(home_plmn_id->mnc));
+                        message->param.home_plmn_id_presence = true;
+                        OpenAPI_plmn_id_free(home_plmn_id);
+                    }
+                    cJSON_Delete(item);
+                }
+            }
+        } else if (!strcmp(ogs_hash_this_key(hi), OGS_SBI_PARAM_TAI)) {
+            char *v = NULL;
+            cJSON *item = NULL;
+            OpenAPI_tai_t *tai = NULL;
+
+            v = ogs_hash_this_val(hi);
+            if (v) {
+                item = cJSON_Parse(v);
+                if (item) {
+                    tai = OpenAPI_tai_parseFromJSON(item);
+                    if (tai && tai->plmn_id && tai->tac) {
+                        ogs_sbi_parse_plmn_id(
+                                &message->param.tai.plmn_id, tai->plmn_id);
+                        message->param.tai.tac =
+                            ogs_uint24_from_string(tai->tac);
+                        message->param.tai_presence = true;
+                        OpenAPI_tai_free(tai);
+                    }
+                    cJSON_Delete(item);
+                }
+            }
         }
     }
 

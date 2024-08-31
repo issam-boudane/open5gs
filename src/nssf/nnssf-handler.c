@@ -70,6 +70,23 @@ bool nssf_nnrf_nsselection_handle_get(
         goto cleanup;
     }
 
+    if (recvmsg->param.home_snssai_presence) {
+        nsi->home_snssai_presence = true;
+        memcpy(&nsi->home_snssai,
+                &recvmsg->param.home_snssai, sizeof(nsi->home_snssai));
+    }
+
+    if (recvmsg->param.home_plmn_id_presence) {
+        nsi->home_plmn_id_presence = true;
+        memcpy(&nsi->home_plmn_id,
+                &recvmsg->param.home_plmn_id, sizeof(nsi->home_plmn_id));
+    }
+
+    if (recvmsg->param.tai_presence) {
+        nsi->tai_presence = true;
+        memcpy(&nsi->tai, &recvmsg->param.tai, sizeof(nsi->tai));
+    }
+
     memset(&NsiInformation, 0, sizeof(NsiInformation));
     NsiInformation.nrf_id = nsi->nrf_id;
     NsiInformation.nsi_id = nsi->nsi_id;

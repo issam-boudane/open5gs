@@ -85,6 +85,17 @@ ogs_sbi_request_t *amf_nnssf_nsselection_build_get(
                     sizeof(message.param.home_snssai));
     }
 
+    if (param->home_plmn_id) {
+        message.param.home_plmn_id_presence = true;
+        memcpy(&message.param.home_plmn_id,
+                param->home_plmn_id, sizeof(message.param.home_plmn_id));
+    }
+
+    if (param->tai) {
+        message.param.tai_presence = true;
+        memcpy(&message.param.tai, param->tai, sizeof(message.param.tai));
+    }
+
     request = ogs_sbi_build_request(&message);
     ogs_expect(request);
 
