@@ -417,6 +417,7 @@ static int client_discover_cb(
             param.slice_info_for_pdu_session.roaming_indication =
                 OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
             param.slice_info_for_pdu_session.home_snssai = &sess->s_nssai;
+            param.home_plmn_id = &amf_ue->home_plmn_id;
             param.tai = &amf_ue->nr_tai;
 
             /* No H-SMF Instance */

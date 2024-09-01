@@ -19,6 +19,7 @@ libnssf_sources = files('''
     context.c
     event.c
 
+    nnssf-build.c
     nnssf-handler.c
 
     sbi-path.c

@@ -46,6 +46,12 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
     ogs_pool_id_t stream_id = OGS_INVALID_POOL_ID;
     ogs_sbi_request_t *request = NULL;
 
+    nssf_home_t *home = NULL;
+
+    ogs_pool_id_t sbi_object_id = OGS_INVALID_POOL_ID;
+    ogs_sbi_xact_t *sbi_xact = NULL;
+    ogs_pool_id_t sbi_xact_id = OGS_INVALID_POOL_ID;
+
     ogs_sbi_nf_instance_t *nf_instance = NULL;
     ogs_sbi_subscription_data_t *subscription_data = NULL;
     ogs_sbi_response_t *response = NULL;
@@ -141,7 +147,8 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
             CASE(OGS_SBI_RESOURCE_NAME_NETWORK_SLICE_INFORMATION)
                 SWITCH(message.h.method)
                 CASE(OGS_SBI_HTTP_METHOD_GET)
-                    nssf_nnrf_nsselection_handle_get(stream, &message);
+                    nssf_nnrf_nsselection_handle_get_from_amf_or_vnssf(
+                            stream, &message);
                     break;
 
                 DEFAULT
@@ -191,7 +198,16 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
             break;
         }
 
-        if (strcmp(message.h.api.version, OGS_SBI_API_V1) != 0) {
+        SWITCH(message.h.service.name)
+        CASE(OGS_SBI_SERVICE_NAME_NNSSF_NSSELECTION)
+            api_version = OGS_SBI_API_V2;
+            break;
+        DEFAULT
+            api_version = OGS_SBI_API_V1;
+        END
+
+        ogs_assert(api_version);
+        if (strcmp(message.h.api.version, api_version) != 0) {
             ogs_error("Not supported version [%s]", message.h.api.version);
             ogs_sbi_message_free(&message);
             ogs_sbi_response_free(response);
@@ -265,6 +281,42 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
                 ogs_assert_if_reached();
             END
             break;
+
+        CASE(OGS_SBI_SERVICE_NAME_NNSSF_NSSELECTION)
+            sbi_xact_id = OGS_POINTER_TO_UINT(e->h.sbi.data);
+            ogs_assert(sbi_xact_id >= OGS_MIN_POOL_ID &&
+                    sbi_xact_id <= OGS_MAX_POOL_ID);
+
+            sbi_xact = ogs_sbi_xact_find_by_id(sbi_xact_id);
+            if (!sbi_xact) {
+                /* CLIENT_WAIT timer could remove SBI transaction
+                 * before receiving SBI message */
+                ogs_error("SBI transaction has already been removed [%d]",
+                        sbi_xact_id);
+                break;
+            }
+
+            sbi_object_id = sbi_xact->sbi_object_id;
+            ogs_assert(sbi_object_id >= OGS_MIN_POOL_ID &&
+                    sbi_object_id <= OGS_MAX_POOL_ID);
+
+            ogs_assert(sbi_xact->assoc_stream_id >= OGS_MIN_POOL_ID &&
+                    sbi_xact->assoc_stream_id <= OGS_MAX_POOL_ID);
+            stream = ogs_sbi_stream_find_by_id(sbi_xact->assoc_stream_id);
+
+            ogs_sbi_xact_remove(sbi_xact);
+
+            home = nssf_home_find_by_id(sbi_object_id);
+            if (!home) {
+                ogs_error("Home Network Context has already been removed");
+                break;
+            }
+
+            e->h.sbi.message = &message;;
+
+            nssf_nnrf_nsselection_handle_get_from_hnssf(home, stream, &message);
+            break;
+
 
         DEFAULT
             ogs_error("Invalid API name [%s]", message.h.service.name);
