@@ -67,6 +67,14 @@ void nssf_sbi_close(void)
     ogs_sbi_server_stop_all();
 }
 
+bool nssf_sbi_send_request(
+        ogs_sbi_nf_instance_t *nf_instance, ogs_sbi_xact_t *xact)
+{
+    ogs_assert(nf_instance);
+    ogs_assert(xact);
+    return ogs_sbi_send_request_to_nf_instance(nf_instance, xact);
+}
+
 int nssf_sbi_discover_and_send(
         ogs_sbi_service_type_e service_type,
         ogs_sbi_discovery_option_t *discovery_option,
