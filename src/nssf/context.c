@@ -48,6 +48,7 @@ void nssf_context_final(void)
     ogs_assert(context_initialized == 1);
 
     nssf_nsi_remove_all();
+    nssf_home_remove_all();
 
     ogs_pool_final(&nssf_nsi_pool);
     ogs_pool_final(&nssf_home_pool);
