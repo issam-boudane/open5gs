@@ -396,8 +396,7 @@ static int client_discover_cb(
 
             ogs_sbi_discovery_option_free(h_discovery_option);
         } else
-            ogs_info("H-SMF Instance [%s](SESSION)",
-                    h_smf_instance->id);
+            ogs_info("H-SMF Instance [%s](SESSION)", h_smf_instance->id);
 
         if (h_smf_instance) {
             /* Both V-SMF and H-SMF Discovered */
@@ -495,7 +494,7 @@ int amf_sess_sbi_discover_by_nsi(
     }
 
     xact->request = amf_nnrf_disc_build_discover(
-                sess->nssf.nrf.id, xact->service_type, xact->discovery_option);
+                sess->nssf.nrf_uri, xact->service_type, xact->discovery_option);
     if (!xact->request) {
         ogs_error("amf_nnrf_disc_build_discover() failed");
         ogs_sbi_xact_remove(xact);

@@ -98,6 +98,27 @@ int amf_nnssf_nsselection_handle_get(
         return OGS_ERROR;
     }
 
+    if (state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
+        if (!sess->nssf.nrf_uri) {
+            ogs_error("No VPLMN nrf_uri");
+            r = nas_5gs_send_gmm_reject_from_sbi(
+                    amf_ue, OGS_SBI_HTTP_STATUS_INTERNAL_SERVER_ERROR);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
+            return OGS_ERROR;
+        }
+
+        if (sess->nssf.hnrf_uri)
+            ogs_free(sess->nssf.hnrf_uri);
+        sess->nssf.hnrf_uri = ogs_strdup(NsiInformation->nrf_id);
+        ogs_assert(sess->nssf.hnrf_uri);
+    } else {
+        if (sess->nssf.nrf_uri)
+            ogs_free(sess->nssf.nrf_uri);
+        sess->nssf.nrf_uri = ogs_strdup(NsiInformation->nrf_id);
+        ogs_assert(sess->nssf.nrf_uri);
+    }
+
     discovery_option = ogs_sbi_discovery_option_new();
     ogs_assert(discovery_option);
 
@@ -105,10 +126,21 @@ int amf_nnssf_nsselection_handle_get(
     ogs_sbi_discovery_option_set_dnn(discovery_option, sess->dnn);
     ogs_sbi_discovery_option_set_tai(discovery_option, &amf_ue->nr_tai);
 
-    if (sess->nssf.nrf.id)
-        ogs_free(sess->nssf.nrf.id);
-    sess->nssf.nrf.id = ogs_strdup(NsiInformation->nrf_id);
-    ogs_assert(sess->nssf.nrf.id);
+    if (state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
+        /*
+         * In order for Home Routed to find NRFs that are on HPLMN,
+         * we need to include Home PLMN information in the Discovery Option.
+         */
+        ogs_sbi_discovery_option_add_target_plmn_list(
+                discovery_option, &amf_ue->home_plmn_id);
+
+        ogs_assert(ogs_local_conf()->num_of_serving_plmn_id);
+        for (i = 0; i < ogs_local_conf()->num_of_serving_plmn_id; i++) {
+            ogs_sbi_discovery_option_add_requester_plmn_list(
+                    discovery_option,
+                    &ogs_local_conf()->serving_plmn_id[i]);
+        }
+    }
 
     /*
      * SCP can only be used with Non-Roaming or LBO.
@@ -124,7 +156,7 @@ int amf_nnssf_nsselection_handle_get(
         amf_nsmf_pdusession_sm_context_param_t param;
 
         memset(&param, 0, sizeof(param));
-        param.nrf_uri.nrf.id = sess->nssf.nrf.id;
+        param.nrf_uri = sess->nssf.nrf_uri;
 
         r = amf_sess_sbi_discover_and_send(
                 OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, discovery_option,
@@ -173,22 +205,6 @@ int amf_nnssf_nsselection_handle_get(
         ogs_free(fqdn);
         ogs_freeaddrinfo(addr);
         ogs_freeaddrinfo(addr6);
-
-        if (state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
-            /*
-             * In order for Home Routed to find NRFs that are on HPLMN,
-             * we need to include Home PLMN information in the Discovery Option.
-             */
-            ogs_sbi_discovery_option_add_target_plmn_list(
-                    discovery_option, &amf_ue->home_plmn_id);
-
-            ogs_assert(ogs_local_conf()->num_of_serving_plmn_id);
-            for (i = 0; i < ogs_local_conf()->num_of_serving_plmn_id; i++) {
-                ogs_sbi_discovery_option_add_requester_plmn_list(
-                        discovery_option,
-                        &ogs_local_conf()->serving_plmn_id[i]);
-            }
-        }
 
         r = amf_sess_sbi_discover_by_nsi(
                 ran_ue, sess,

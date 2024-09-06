@@ -801,10 +801,11 @@ typedef struct amf_sess_s {
 
     struct {
         char *nsi_id;
+        char *nrf_uri;
         struct {
-            char *id;
             ogs_sbi_client_t *client;
         } nrf;
+        char *hnrf_uri;
     } nssf;
 
     /* last payload for sending back to the UE */

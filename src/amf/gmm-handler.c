@@ -1516,20 +1516,35 @@ int gmm_handle_ul_nas_transport(ran_ue_t *ran_ue, amf_ue_t *amf_ue,
                             ogs_assert(r != OGS_ERROR);
                         } else {
                             /* No H-SMF Instance */
-
-                            param.slice_info_for_pdu_session.home_snssai =
-                                &sess->s_nssai;
-
                             ogs_info("H-SMF not discovered");
-                            r = amf_sess_sbi_discover_and_send(
-                                    OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
-                                    NULL,
-                                    amf_nnssf_nsselection_build_get,
-                                    ran_ue, sess,
-                                    AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED,
-                                    &param);
-                            ogs_expect(r == OGS_OK);
-                            ogs_assert(r != OGS_ERROR);
+
+                            if (sess->nssf.nrf_uri) {
+                                ogs_info("nrfUri available [%s]",
+                                        sess->nssf.nrf_uri);
+                                param.slice_info_for_pdu_session.home_snssai =
+                                    &sess->s_nssai;
+
+                                r = amf_sess_sbi_discover_and_send(
+                                        OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
+                                        NULL,
+                                        amf_nnssf_nsselection_build_get,
+                                        ran_ue, sess,
+                                        AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED,
+                                        &param);
+                                ogs_expect(r == OGS_OK);
+                                ogs_assert(r != OGS_ERROR);
+                            } else {
+                                ogs_info("No nrfUri");
+                                r = amf_sess_sbi_discover_and_send(
+                                        OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
+                                        NULL,
+                                        amf_nnssf_nsselection_build_get,
+                                        ran_ue, sess,
+                                        AMF_SMF_SELECTION_IN_VPLMN_IN_HOME_ROUTED,
+                                        &param);
+                                ogs_expect(r == OGS_OK);
+                                ogs_assert(r != OGS_ERROR);
+                            }
 
                             ogs_sbi_discovery_option_free(v_discovery_option);
                         }

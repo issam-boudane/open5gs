@@ -227,10 +227,10 @@ ogs_sbi_request_t *amf_nsmf_pdusession_build_create_sm_context(
     message.http.custom.callback =
         (char *)OGS_SBI_CALLBACK_NSMF_PDUSESSION_STATUS_NOTIFY;
 
-    if (param && param->nrf_uri.nrf.id) {
+    if (param && param->nrf_uri) {
         message.http.custom.nrf_uri =
             ogs_msprintf("%s: \"%s\"",
-                    OGS_SBI_SERVICE_NAME_NNRF_DISC, param->nrf_uri.nrf.id);
+                    OGS_SBI_SERVICE_NAME_NNRF_DISC, param->nrf_uri);
     }
 
     request = ogs_sbi_build_request(&message);

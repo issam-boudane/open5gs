@@ -2309,10 +2309,12 @@ void amf_sess_remove(amf_sess_t *sess)
 
     if (sess->nssf.nsi_id)
         ogs_free(sess->nssf.nsi_id);
-    if (sess->nssf.nrf.id)
-        ogs_free(sess->nssf.nrf.id);
+    if (sess->nssf.nrf_uri)
+        ogs_free(sess->nssf.nrf_uri);
     if (sess->nssf.nrf.client)
         ogs_sbi_client_remove(sess->nssf.nrf.client);
+    if (sess->nssf.hnrf_uri)
+        ogs_free(sess->nssf.hnrf_uri);
 
     ogs_pool_id_free(&amf_sess_pool, sess);
 
