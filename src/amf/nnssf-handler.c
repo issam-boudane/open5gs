@@ -140,6 +140,10 @@ int amf_nnssf_nsselection_handle_get(
                     discovery_option,
                     &ogs_local_conf()->serving_plmn_id[i]);
         }
+
+        ogs_assert(sess->nssf.hnrf_uri);
+        ogs_sbi_discovery_option_set_hnrf_uri(
+                discovery_option, sess->nssf.hnrf_uri);
     }
 
     /*

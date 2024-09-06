@@ -507,6 +507,10 @@ ogs_sbi_request_t *ogs_sbi_build_request(ogs_sbi_message_t *message)
                                 &discovery_option->requester_plmn_list[0]));
             }
         }
+        if (discovery_option->hnrf_uri) {
+            ogs_sbi_header_set(request->http.params,
+                    OGS_SBI_PARAM_HNRF_URI, discovery_option->hnrf_uri);
+        }
         if (discovery_option->requester_features) {
             char *v = ogs_uint64_to_string(
                     discovery_option->requester_features);
@@ -959,6 +963,12 @@ int ogs_sbi_parse_request(
                 discovery_option->num_of_requester_plmn_list =
                     ogs_sbi_discovery_option_parse_plmn_list(
                         discovery_option->requester_plmn_list, v);
+                discovery_option_presence = true;
+            }
+        } else if (!strcmp(ogs_hash_this_key(hi), OGS_SBI_PARAM_HNRF_URI)) {
+            char *v = ogs_hash_this_val(hi);
+            if (v) {
+                ogs_sbi_discovery_option_set_hnrf_uri(discovery_option, v);
                 discovery_option_presence = true;
             }
         } else if (!strcmp(ogs_hash_this_key(hi),
@@ -3089,6 +3099,9 @@ void ogs_sbi_discovery_option_free(
     for (i = 0; i < discovery_option->num_of_service_names; i++)
         ogs_free(discovery_option->service_names[i]);
 
+    if (discovery_option->hnrf_uri)
+        ogs_free(discovery_option->hnrf_uri);
+
     ogs_free(discovery_option);
 }
 
@@ -3598,4 +3611,15 @@ cleanup:
     cJSON_Delete(item);
 
     return num_of_plmn_list;
+}
+
+void ogs_sbi_discovery_option_set_hnrf_uri(
+        ogs_sbi_discovery_option_t *discovery_option, char *hnrf_uri)
+{
+    ogs_assert(discovery_option);
+    ogs_assert(hnrf_uri);
+
+    ogs_assert(!discovery_option->hnrf_uri);
+    discovery_option->hnrf_uri = ogs_strdup(hnrf_uri);
+    ogs_assert(discovery_option->hnrf_uri);
 }

@@ -298,6 +298,8 @@ extern "C" {
     OGS_SBI_CUSTOM_DISCOVERY_COMMON OGS_SBI_PARAM_REQUESTER_FEATURES
 #define OGS_SBI_CUSTOM_DISCOVERY_GUAMI  \
     OGS_SBI_CUSTOM_DISCOVERY_COMMON OGS_SBI_PARAM_GUAMI
+#define OGS_SBI_CUSTOM_DISCOVERY_HNRF_URI  \
+    OGS_SBI_CUSTOM_DISCOVERY_COMMON OGS_SBI_PARAM_HNRF_URI
 #define OGS_SBI_CUSTOM_PRODUCER_ID       \
     OGS_SBI_CUSTOM_3GPP_COMMON "Producer-Id"
 #define OGS_SBI_CUSTOM_OCI               \
@@ -341,6 +343,7 @@ extern "C" {
 #define OGS_SBI_PARAM_IPV4ADDR                      "ipv4Addr"
 #define OGS_SBI_PARAM_IPV6PREFIX                    "ipv6Prefix"
 #define OGS_SBI_PARAM_HOME_PLMN_ID                  "home-plmn-id"
+#define OGS_SBI_PARAM_HNRF_URI                      "hnrf-uri"
 
 #define OGS_SBI_CONTENT_JSON_TYPE                   \
     OGS_SBI_APPLICATION_TYPE "/" OGS_SBI_APPLICATION_JSON_TYPE
@@ -443,6 +446,8 @@ typedef struct ogs_sbi_discovery_option_s {
     ogs_plmn_id_t target_plmn_list[OGS_MAX_NUM_OF_PLMN];
     int num_of_requester_plmn_list;
     ogs_plmn_id_t requester_plmn_list[OGS_MAX_NUM_OF_PLMN];
+
+    char *hnrf_uri;
 
     uint64_t requester_features;
 } ogs_sbi_discovery_option_t;
@@ -684,6 +689,9 @@ char *ogs_sbi_discovery_option_build_plmn_list(
         ogs_plmn_id_t *plmn_list, int num_of_plmn_list);
 int ogs_sbi_discovery_option_parse_plmn_list(
         ogs_plmn_id_t *plmn_list, char *v);
+
+void ogs_sbi_discovery_option_set_hnrf_uri(
+        ogs_sbi_discovery_option_t *discovery_option, char *hnrf_uri);
 
 #ifdef __cplusplus
 }
