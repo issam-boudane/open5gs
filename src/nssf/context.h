@@ -67,8 +67,6 @@ typedef struct nssf_home_s {
 
     char *nrf_id;
     char *nsi_id;
-
-    nssf_nsi_t *nssi; /* Related Context */
 } nssf_home_t;
 
 nssf_nsi_t *nssf_nsi_add(char *nrf_id, uint8_t sst, ogs_uint24_t sd);

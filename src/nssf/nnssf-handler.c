@@ -106,7 +106,6 @@ bool nssf_nnrf_nsselection_handle_get_from_amf_or_vnssf(
                 goto cleanup;
             }
 
-
             h_discovery_option = ogs_sbi_discovery_option_new();
             ogs_assert(h_discovery_option);
 
@@ -214,6 +213,17 @@ bool nssf_nnrf_nsselection_handle_get_from_hnssf(
         strerror = ogs_msprintf("No nrfId");
         goto cleanup;
     }
+
+    if (!NsiInformation->nsi_id) {
+        status = OGS_SBI_HTTP_STATUS_BAD_REQUEST;
+        strerror = ogs_msprintf("No nsiId");
+        goto cleanup;
+    }
+
+    home->nrf_id = ogs_strdup(NsiInformation->nrf_id);
+    ogs_assert(home->nrf_id);
+    home->nsi_id = ogs_strdup(NsiInformation->nsi_id);
+    ogs_assert(home->nsi_id);
 
     memset(&sendmsg, 0, sizeof(sendmsg));
     sendmsg.AuthorizedNetworkSliceInfo = AuthorizedNetworkSliceInfo;
