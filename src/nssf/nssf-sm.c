@@ -441,7 +441,6 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
              * To avoid double-free SBI xact,
              * we need to check ogs_sbi_xact_find_by_id()
              */
-            ogs_fatal("asdlkfjalsdfjalsdfjsadf");
             sbi_xact_id = OGS_POINTER_TO_UINT(e->h.sbi.data);
             ogs_assert(sbi_xact_id >= OGS_MIN_POOL_ID &&
                     sbi_xact_id <= OGS_MAX_POOL_ID);

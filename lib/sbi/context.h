@@ -151,6 +151,7 @@ typedef struct ogs_sbi_nf_instance_s {
     int num_of_plmn_id;
 
     char *fqdn;
+    char *hnrf_uri; /* NRF Only */
 
 #define OGS_SBI_MAX_NUM_OF_IP_ADDRESS 8
     int num_of_ipv4;
@@ -532,6 +533,9 @@ bool ogs_sbi_discovery_option_requester_plmn_list_is_matched(
         ogs_sbi_nf_instance_t *nf_instance,
         ogs_sbi_discovery_option_t *discovery_option);
 bool ogs_sbi_discovery_option_target_plmn_list_is_matched(
+        ogs_sbi_nf_instance_t *nf_instance,
+        ogs_sbi_discovery_option_t *discovery_option);
+bool ogs_sbi_discovery_option_hnrf_uri_is_matched(
         ogs_sbi_nf_instance_t *nf_instance,
         ogs_sbi_discovery_option_t *discovery_option);
 

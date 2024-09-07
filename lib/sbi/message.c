@@ -3623,3 +3623,11 @@ void ogs_sbi_discovery_option_set_hnrf_uri(
     discovery_option->hnrf_uri = ogs_strdup(hnrf_uri);
     ogs_assert(discovery_option->hnrf_uri);
 }
+
+void ogs_sbi_discovery_option_clear_hnrf_uri(
+        ogs_sbi_discovery_option_t *discovery_option)
+{
+    ogs_assert(discovery_option);
+    ogs_free(discovery_option->hnrf_uri);
+    discovery_option->hnrf_uri = NULL;
+}

@@ -692,6 +692,8 @@ int ogs_sbi_discovery_option_parse_plmn_list(
 
 void ogs_sbi_discovery_option_set_hnrf_uri(
         ogs_sbi_discovery_option_t *discovery_option, char *hnrf_uri);
+void ogs_sbi_discovery_option_clear_hnrf_uri(
+        ogs_sbi_discovery_option_t *discovery_option);
 
 #ifdef __cplusplus
 }
