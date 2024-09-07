@@ -222,7 +222,7 @@ static int client_discover_cb(
 
     ogs_sbi_discovery_option_t *v_discovery_option = NULL;
 
-    int state;
+    int current_state, next_state = AMF_CREATE_SM_CONTEXT_NO_STATE;
 
     xact_id = OGS_POINTER_TO_UINT(data);
     ogs_assert(xact_id >= OGS_MIN_POOL_ID && xact_id <= OGS_MAX_POOL_ID);
@@ -243,8 +243,8 @@ static int client_discover_cb(
     ogs_assert(requester_nf_type);
     discovery_option = xact->discovery_option;
 
-    state = xact->state;
-    ogs_assert(state);
+    current_state = xact->state;
+    ogs_assert(current_state);
 
     sess = amf_sess_find_by_id(xact->sbi_object_id);
     if (!sess) {
@@ -340,18 +340,11 @@ static int client_discover_cb(
     ogs_sbi_discovery_option_set_dnn(v_discovery_option, sess->dnn);
     ogs_sbi_discovery_option_set_tai(v_discovery_option, &amf_ue->nr_tai);
 
-    if (state == AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO) {
+    if (current_state == AMF_SMF_SELECTION_IN_VPLMN_IN_NON_ROAMING_OR_LBO) {
         OGS_SBI_SETUP_NF_INSTANCE(
                 sess->sbi.service_type_array[service_type], nf_instance);
 
-        r = amf_sess_sbi_discover_and_send(
-                service_type, v_discovery_option,
-                amf_nsmf_pdusession_build_create_sm_context,
-                ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
-        ogs_expect(r == OGS_OK);
-        ogs_assert(r != OGS_ERROR);
-
-    } else if (state == AMF_SMF_SELECTION_IN_VPLMN_IN_HOME_ROUTED) {
+    } else if (current_state == AMF_SMF_SELECTION_IN_VPLMN_IN_HOME_ROUTED) {
         /* Home-Routed roaming */
         ogs_sbi_nf_instance_t *h_smf_instance = NULL;
 
@@ -401,49 +394,54 @@ static int client_discover_cb(
         if (h_smf_instance) {
             /* Both V-SMF and H-SMF Discovered */
             ogs_info("H-SMF Instance [%s]", h_smf_instance->id);
-            r = amf_sess_sbi_discover_and_send(
-                    service_type, v_discovery_option,
-                    amf_nsmf_pdusession_build_create_sm_context,
-                    ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
         } else {
-            amf_nnssf_nsselection_param_t param;
-
-            memset(&param, 0, sizeof(param));
-            param.slice_info_for_pdu_session.presence = true;
-            param.slice_info_for_pdu_session.snssai = &sess->s_nssai;
-            param.slice_info_for_pdu_session.roaming_indication =
-                OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
-            param.slice_info_for_pdu_session.home_snssai = &sess->s_nssai;
-            param.home_plmn_id = &amf_ue->home_plmn_id;
-            param.tai = &amf_ue->nr_tai;
-
-            /* No H-SMF Instance */
             ogs_info("H-SMF not discovered");
-            r = amf_sess_sbi_discover_and_send(
-                    OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION,
-                    NULL,
-                    amf_nnssf_nsselection_build_get, ran_ue, sess,
-                    AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED, &param);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
-
-            ogs_sbi_discovery_option_free(v_discovery_option);
+            next_state = AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED;
         }
-    } else if (state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
+    } else if (current_state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
         ogs_info("Home-Routed Roaming(HPLMN)");
 
         OGS_SBI_SETUP_NF_INSTANCE(sess->sbi.home_nsmf_pdusession, nf_instance);
+    } else {
+        ogs_fatal("Invalid current_state = %d", current_state);
+        ogs_assert_if_reached();
+    }
+
+    if (next_state == AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED) {
+
+        amf_nnssf_nsselection_param_t param;
+
+        memset(&param, 0, sizeof(param));
+        param.slice_info_for_pdu_session.presence = true;
+        param.slice_info_for_pdu_session.snssai = &sess->s_nssai;
+        param.slice_info_for_pdu_session.roaming_indication =
+            OpenAPI_roaming_indication_HOME_ROUTED_ROAMING;
+        param.slice_info_for_pdu_session.home_snssai = &sess->s_nssai;
+        param.home_plmn_id = &amf_ue->home_plmn_id;
+        param.tai = &amf_ue->nr_tai;
+
+        /* No H-SMF Instance */
+        ogs_info("H-SMF not discovered");
+        r = amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NNSSF_NSSELECTION, NULL,
+                amf_nnssf_nsselection_build_get, ran_ue, sess,
+                AMF_SMF_SELECTION_IN_HPLMN_IN_HOME_ROUTED, &param);
+        ogs_expect(r == OGS_OK);
+        ogs_assert(r != OGS_ERROR);
+
+        ogs_sbi_discovery_option_free(v_discovery_option);
+
+    } else if (next_state == AMF_CREATE_SM_CONTEXT_NO_STATE) {
 
         r = amf_sess_sbi_discover_and_send(
                 service_type, v_discovery_option,
                 amf_nsmf_pdusession_build_create_sm_context,
-                ran_ue, sess, AMF_CREATE_SM_CONTEXT_NO_STATE, NULL);
+                ran_ue, sess, next_state, NULL);
         ogs_expect(r == OGS_OK);
         ogs_assert(r != OGS_ERROR);
+
     } else {
-        ogs_fatal("Invalid state = %d", state);
+        ogs_error("Invalid NEXT state [%d]", next_state);
         ogs_assert_if_reached();
     }
 
