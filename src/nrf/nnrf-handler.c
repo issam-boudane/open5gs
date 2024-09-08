@@ -1036,6 +1036,10 @@ bool nrf_nnrf_handle_nf_discover(
                 if (rc == false || scheme == OpenAPI_uri_scheme_NULL)
                     ogs_error("Invalid URL [%s]", request->h.uri);
                 else {
+            /*
+             * If there is an hnrf-uri, this value creates an nf-instance->fqdn,
+             * which in turn creates a client->fqdn from the hnrf-uri.
+             */
                     nf_instance->hnrf_uri =
                         ogs_strdup(discovery_option->hnrf_uri);
                     nf_instance->fqdn = ogs_strdup(fqdn);
@@ -1051,6 +1055,15 @@ bool nrf_nnrf_handle_nf_discover(
                     ogs_nrf_fqdn_from_plmn_id(nf_instance->plmn_id);
                 ogs_assert(nf_instance->fqdn);
             }
+
+            /*
+             * At this stage, the client->fqdn is set and this is
+             * passed through to the Target-apiRoot to the Home PLMN.
+             *
+             * As mentioned above, if there is an hnrf-uri, this value creates
+             * an nf-instance->fqdn, which in turn creates a client->fqdn
+             * from the hnrf-uri.
+             */
             ogs_sbi_client_associate(nf_instance);
 
             ogs_error("New NRF [fqdn:%s, hnrf_uri:%s]",
