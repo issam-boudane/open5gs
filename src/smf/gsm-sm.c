@@ -718,16 +718,45 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                     OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
                     return;
                 }
-                memset(&param, 0, sizeof(param));
-                param.state = SMF_UE_REQUESTED_PDU_SESSION_ESTABLISHMENT;
-                param.n1smbuf =
-                    gsm_build_pdu_session_establishment_accept(sess);
-                ogs_assert(param.n1smbuf);
-                param.n2smbuf =
-                    ngap_build_pdu_session_resource_setup_request_transfer(
-                            sess);
-                ogs_assert(param.n2smbuf);
-                smf_namf_comm_send_n1_n2_message_transfer(sess, &param);
+#if 0
+                if (sess->h_smf_uri) {
+                    int i, r;
+                    ogs_sbi_discovery_option_t *discovery_option =
+                        ogs_sbi_discovery_option_new();
+                    ogs_assert(discovery_option);
+
+                    ogs_sbi_discovery_option_add_target_plmn_list(
+                            discovery_option, &sess->home_plmn_id);
+
+                    ogs_assert(ogs_local_conf()->num_of_serving_plmn_id);
+                    for (i = 0; i < ogs_local_conf()->num_of_serving_plmn_id;
+                            i++) {
+                        ogs_sbi_discovery_option_add_requester_plmn_list(
+                                discovery_option,
+                                &ogs_local_conf()->serving_plmn_id[i]);
+                    }
+                    r = smf_sbi_discover_and_send(
+                            OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION,
+                            discovery_option,
+                            smf_nsmf_pdusession_build_create_sm_context,
+                            sess, NULL, 0, NULL);
+                    ogs_expect(r == OGS_OK);
+                    ogs_assert(r != OGS_ERROR);
+                } else {
+#endif
+                    memset(&param, 0, sizeof(param));
+                    param.state = SMF_UE_REQUESTED_PDU_SESSION_ESTABLISHMENT;
+                    param.n1smbuf =
+                        gsm_build_pdu_session_establishment_accept(sess);
+                    ogs_assert(param.n1smbuf);
+                    param.n2smbuf =
+                        ngap_build_pdu_session_resource_setup_request_transfer(
+                                sess);
+                    ogs_assert(param.n2smbuf);
+                    smf_namf_comm_send_n1_n2_message_transfer(sess, &param);
+#if 0
+                }
+#endif
             }
 
             OGS_FSM_TRAN(s, smf_gsm_state_operational);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2024 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -66,7 +66,7 @@ ogs_sbi_request_t *amf_nsmf_pdusession_build_create_sm_context(
 
     SmContextCreateData.serving_network =
         ogs_sbi_build_plmn_id_nid(&amf_ue->nr_tai.plmn_id);
-    if (!SmContextCreateData.serving_nf_id) {
+    if (!SmContextCreateData.serving_network) {
         ogs_error("No serving_network");
         goto end;
     }
