@@ -1066,12 +1066,12 @@ bool nrf_nnrf_handle_nf_discover(
              */
             ogs_sbi_client_associate(nf_instance);
 
-            ogs_error("New NRF [fqdn:%s, hnrf_uri:%s]",
+            ogs_info("New NRF [fqdn:%s, hnrf_uri:%s]",
                     nf_instance->fqdn ? nf_instance->fqdn : "NULL",
                     nf_instance->hnrf_uri ? nf_instance->hnrf_uri : "NULL");
 
         } else {
-            ogs_error("NRF Found [fqdn:%s, hnrf_uri:%s]",
+            ogs_info("NRF Found [fqdn:%s, hnrf_uri:%s]",
                     nf_instance->fqdn ? nf_instance->fqdn : "NULL",
                     nf_instance->hnrf_uri ? nf_instance->hnrf_uri : "NULL");
         }
